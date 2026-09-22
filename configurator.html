@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>화수목 모듈러 프레임 컨피규레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<style>
+  :root {
+    --paper: #F3EEE3;
+    --paper-dark: #E7DFCC;
+    --card: #FBF8F1;
+    --ink: #2B2620;
+    --ink-soft: #6E6455;
+    --moss: #3F5233;
+    --moss-soft: #E3E9D9;
+    --clay: #A9713F;
+    --line: #D8CEB8;
+    --error: #A6432E;
+    --error-soft: #F3E1DA;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper: #201D18;
+      --paper-dark: #29241D;
+      --card: #262119;
+      --ink: #ECE5D5;
+      --ink-soft: #AB9E87;
+      --moss: #8FB37A;
+      --moss-soft: #2E3A27;
+      --clay: #D6A26B;
+      --line: #423B2E;
+      --error: #E08268;
+      --error-soft: #3A251F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #201D18;
+    --paper-dark: #29241D;
+    --card: #262119;
+    --ink: #ECE5D5;
+    --ink-soft: #AB9E87;
+    --moss: #8FB37A;
+    --moss-soft: #2E3A27;
+    --clay: #D6A26B;
+    --line: #423B2E;
+    --error: #E08268;
+    --error-soft: #3A251F;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  header.top { margin-bottom: 22px; }
+  header.top .eyebrow { font-size: 13px; color: var(--moss); font-weight: 700; letter-spacing: 0.02em; }
+  header.top h1 {
+    font-family: 'Noto Serif KR', serif; font-weight: 700;
+    font-size: clamp(24px, 4vw, 32px); margin: 4px 0 6px; line-height: 1.25;
+  }
+  header.top p { color: var(--ink-soft); font-size: 14.5px; margin: 0 0 8px; line-height: 1.6; max-width: 70ch; }
+  header.top a.navlink { font-size: 13px; color: var(--moss); text-decoration: none; font-weight: 700; }
+  header.top a.navlink:hover { text-decoration: underline; }
+
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 20px; }
+  .card + .card { margin-top: 16px; }
+  .card h2 { font-family: 'Noto Serif KR', serif; font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+  .card .sub { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 14px; line-height: 1.5; }
+
+  .field-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--line);
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-row label { font-size: 13.5px; color: var(--ink); flex: 1; }
+  .field-row .unit { font-size: 12px; color: var(--ink-soft); margin-left: 4px; }
+  input[type="number"], input[type="text"] {
+    width: 92px; background: var(--paper-dark); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 8px; font-size: 13.5px; color: var(--ink); font-family: 'Noto Sans KR', sans-serif; text-align: right;
+  }
+  input.wide { width: 100%; text-align: left; }
+  input[type="number"]:focus, input[type="text"]:focus, button:focus-visible {
+    outline: 2px solid var(--moss); outline-offset: 1px;
+  }
+
+  .reset-btn {
+    margin-top: 14px; width: 100%; background: none; border: 1px solid var(--line); color: var(--ink-soft);
+    border-radius: 6px; padding: 8px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+  }
+  .reset-btn:hover { border-color: var(--clay); color: var(--clay); }
+
+  .result-banner {
+    background: var(--moss); color: var(--moss-soft); border-radius: 10px; padding: 22px;
+    display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-end; justify-content: space-between;
+  }
+  .result-banner .big { display: flex; flex-direction: column; gap: 2px; }
+  .result-banner .big .label { font-size: 13px; opacity: 0.85; }
+  .result-banner .big .num {
+    font-family: 'Noto Serif KR', serif; font-weight: 700; font-size: clamp(30px, 5vw, 42px);
+    line-height: 1.1; color: #FBF8F1;
+  }
+  .result-banner .mini-stats { display: flex; gap: 22px; flex-wrap: wrap; }
+  .result-banner .mini-stats div { display: flex; flex-direction: column; gap: 2px; }
+  .result-banner .mini-stats .label { font-size: 11.5px; opacity: 0.8; }
+  .result-banner .mini-stats .val { font-size: 16px; font-weight: 700; color: #FBF8F1; }
+
+  .breakdown { margin-top: 10px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+  .breakdown b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  table.items { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.items th {
+    text-align: left; font-weight: 700; color: var(--ink-soft); font-size: 12px; padding: 6px 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.items td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.items input[type="number"] { width: 76px; }
+  table.items input[type="text"] { width: 120px; text-align: left; }
+  table.items .del-btn {
+    background: none; border: none; color: var(--error); cursor: pointer; font-size: 16px; line-height: 1; padding: 4px;
+  }
+  .add-row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .add-row input { width: 100px; }
+  .add-btn {
+    background: var(--moss); color: var(--moss-soft); border: none; border-radius: 6px; padding: 8px 16px;
+    font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .add-btn:hover { opacity: 0.9; }
+  .apply-btn {
+    background: var(--clay); color: #FBF8F1; border: none; border-radius: 6px; padding: 8px 14px;
+    font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .apply-btn:hover { opacity: 0.9; }
+
+  .toggle-group { display: flex; gap: 8px; margin-bottom: 12px; }
+  .toggle-btn {
+    flex: 1; background: var(--paper-dark); border: 1px solid var(--line); color: var(--ink-soft);
+    border-radius: 6px; padding: 9px 10px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+    text-align: center; line-height: 1.4;
+  }
+  .toggle-btn.active { background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700; }
+
+  .imryul-presets { display: flex; gap: 8px; margin-bottom: 10px; }
+  .preset-btn {
+    background: var(--paper-dark); border: 1px solid var(--line); color: var(--ink); border-radius: 999px;
+    padding: 6px 14px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+  }
+  .preset-btn:hover { border-color: var(--moss); color: var(--moss); }
+  .preset-btn.active { background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700; }
+
+  .warn {
+    background: var(--error-soft); color: var(--error); border-radius: 6px; padding: 8px 10px;
+    font-size: 12.5px; margin-top: 10px; line-height: 1.5;
+  }
+
+  /* --- grid editor --- */
+  .grid-editor-wrap { overflow-x: auto; padding-bottom: 6px; }
+  .grid-editor {
+    display: inline-grid; gap: 3px; margin: 6px 0 4px;
+  }
+  .grid-cell {
+    background: var(--moss-soft); border: 1px solid var(--moss); border-radius: 4px; cursor: pointer;
+    min-width: 34px; min-height: 34px; transition: background 0.1s;
+  }
+  .grid-cell.off { background: var(--paper-dark); border-color: var(--line); }
+  .grid-cell:hover { outline: 2px solid var(--clay); outline-offset: -2px; }
+  .grid-hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+
+  /* --- 3d canvas --- */
+  .canvas-wrap {
+    position: relative; width: 100%; aspect-ratio: 16/10; background: var(--paper-dark);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden; touch-action: none;
+  }
+  .canvas-wrap canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  .canvas-wrap canvas:active { cursor: grabbing; }
+  .canvas-hint {
+    position: absolute; left: 10px; bottom: 8px; font-size: 11.5px; color: var(--ink-soft);
+    background: rgba(255,255,255,0.55); padding: 3px 8px; border-radius: 999px; pointer-events: none;
+  }
+  :root:not([data-theme="light"]) .canvas-hint { background: rgba(0,0,0,0.35); }
+
+  footer.note {
+    margin-top: 28px; font-size: 12px; color: var(--ink-soft); line-height: 1.7;
+    border-top: 1px solid var(--line); padding-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">화수목 · 내부 산출 도구</div>
+    <h1>모듈러 프레임 컨피규레이터 (3D)</h1>
+    <p>열(폭)·행(높이)·깊이로 그리드를 만들고, 칸을 클릭해 모듈(선반 칸)을 배치하면 프로파일 프레임(기둥·가로대·깊이 연결대)이 자동으로 산출되어 3D로 보여줍니다. 결합부(조인트) 개수도 자동 계산되어 원가·판매가에 반영됩니다.</p>
+    <a class="navlink" href="index.html">← 자재 직접입력 원가 계산기로</a>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: settings -->
+    <div>
+      <div class="card">
+        <h2>그리드(프레임) 구성</h2>
+        <p class="sub">쉼표로 구분해 각 칸의 폭/높이를 입력하세요. 예: 60,60,60 → 3칸.</p>
+        <div class="field-row" style="flex-direction:column; align-items:stretch; gap:4px;">
+          <label>열 폭(cm, 왼쪽→오른쪽)</label>
+          <input type="text" id="colsInput" class="wide" value="60,60,60">
+        </div>
+        <div class="field-row" style="flex-direction:column; align-items:stretch; gap:4px;">
+          <label>행 높이(cm, 아래→위)</label>
+          <input type="text" id="rowsInput" class="wide" value="35,35,35">
+        </div>
+        <div class="field-row"><label>깊이</label><div><input type="number" id="gridDepth" value="35" min="1"><span class="unit">cm</span></div></div>
+        <button class="apply-btn" id="applyGridBtn" style="width:100%; margin-top:10px;">그리드 재생성</button>
+      </div>
+
+      <div class="card">
+        <h2>단가 설정</h2>
+        <p class="sub">원자재 배합비·kg당 단가. 기본값은 자재 계산기와 동일합니다.</p>
+        <div class="field-row"><label>목분 배합비</label><div><input type="number" id="r_wood" value="50" step="0.1"><span class="unit">%</span></div></div>
+        <div class="field-row"><label>멸균팩 배합비</label><div><input type="number" id="r_mel" value="20" step="0.1"><span class="unit">%</span></div></div>
+        <div class="field-row"><label>폐플라스틱 배합비</label><div><input type="number" id="r_plastic" value="28" step="0.1"><span class="unit">%</span></div></div>
+        <div class="field-row"><label>첨가제 배합비</label><div><input type="number" id="r_add" value="2" step="0.1"><span class="unit">%</span></div></div>
+        <div class="ratio-sum" id="ratioSum" style="margin-top:8px; font-size:12.5px; text-align:right; color:var(--ink-soft);">합계 100.0%</div>
+      </div>
+
+      <div class="card">
+        <div class="field-row"><label>목분</label><div><input type="number" id="p_wood" value="300"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>멸균팩</label><div><input type="number" id="p_mel" value="150"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>폐플라스틱</label><div><input type="number" id="p_plastic" value="700"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>첨가제</label><div><input type="number" id="p_add" value="3400"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>콤파운드 가공비</label><div><input type="number" id="p_compound" value="450"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>제품 생산비</label><div><input type="number" id="p_prod" value="400"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>1m 기준 중량</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+      </div>
+
+      <div class="card">
+        <h2>결합부속품 (조인트 1개당)</h2>
+        <p class="sub">프레임 부재가 만나는 결합부(조인트) 1개소에 들어가는 하드웨어입니다. 총 하드웨어 수량 = 조인트 개수 × 조인트당 수량으로 자동 계산됩니다.</p>
+        <table class="items">
+          <thead><tr><th>품목명</th><th style="text-align:right;">단가(원)</th><th style="text-align:right;">조인트당 수량</th><th></th></tr></thead>
+          <tbody id="hardwareBody"></tbody>
+        </table>
+        <div class="add-row">
+          <input type="text" id="customHwName" placeholder="품목명" style="width:120px;">
+          <input type="number" id="customHwPrice" placeholder="단가(원)" min="0">
+          <input type="number" id="customHwQty" placeholder="수량" min="0" step="0.5" value="1">
+          <button class="add-btn" id="addHwBtn">추가</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>배치(공장 가동) 조건</h2>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="mode_own">이 프레임 물량이<br>곧 배치 전체</button>
+          <button class="toggle-btn" id="mode_shared">더 큰 배치의<br>일부로 생산</button>
+        </div>
+        <div class="field-row" id="sharedBatchRow" style="display:none;">
+          <label>이번에 실제 투입할 배치 총량</label>
+          <div><input type="number" id="batchTotal" value="1000"><span class="unit">kg</span></div>
+        </div>
+        <div class="field-row"><label>이 프레임을 몇 세트 만들 것인지</label><div><input type="number" id="setCount" value="1" min="1"><span class="unit">세트</span></div></div>
+        <p class="sub" style="margin:14px 0 6px;">설비 임률</p>
+        <div class="imryul-presets">
+          <button class="preset-btn active" data-imryul="2000000">200만원</button>
+          <button class="preset-btn" data-imryul="2500000">250만원</button>
+        </div>
+        <div class="field-row"><label>직접 입력</label><div><input type="number" id="imryulCustom" value="2000000"><span class="unit">원</span></div></div>
+        <div class="warn" id="batchWarn" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>판매가 설정</h2>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="mode_markup">원가 대비 마크업<br>판매가 = 원가 × (1+r)</button>
+          <button class="toggle-btn" id="mode_margin">판매가 대비 마진율<br>판매가 = 원가 ÷ (1−r)</button>
+        </div>
+        <div class="field-row"><label>적용 비율</label><div><input type="number" id="markupRate" value="30" step="0.5" min="0"><span class="unit">%</span></div></div>
+      </div>
+
+      <button class="reset-btn" id="resetBtn">기본값으로 초기화</button>
+    </div>
+
+    <!-- RIGHT: main -->
+    <div>
+
+      <div class="card">
+        <h2>모듈 배치 (그리드 클릭)</h2>
+        <p class="sub">칸을 클릭하면 그 자리의 모듈(선반 칸)을 켜고 끕니다. 인접한 칸끼리는 기둥·가로대를 공유해서 중복 산출하지 않습니다.</p>
+        <div class="grid-editor-wrap">
+          <div class="grid-editor" id="gridEditor"></div>
+        </div>
+        <div class="grid-hint" id="gridHint"></div>
+      </div>
+
+      <div class="card">
+        <h2>3D 미리보기</h2>
+        <div class="canvas-wrap" id="canvasWrap">
+          <div class="canvas-hint">드래그: 회전 · 휠: 확대/축소</div>
+        </div>
+      </div>
+
+      <div class="result-banner" id="resultBanner" style="margin-top:16px;">
+        <div class="big">
+          <div class="label">세트 1건당 판매가</div>
+          <div class="num" id="perSetPrice">–</div>
+        </div>
+        <div class="mini-stats">
+          <div><div class="label">세트당 원가</div><div class="val" id="perSetCost">–</div></div>
+          <div><div class="label">세트당 마진</div><div class="val" id="perSetMargin">–</div></div>
+          <div><div class="label">결합부(조인트) 개수</div><div class="val" id="jointCount">–</div></div>
+          <div><div class="label">총 투입 원료</div><div class="val" id="totalWeight">–</div></div>
+          <div><div class="label">배분된 설비임률</div><div class="val" id="allocImryul">–</div></div>
+        </div>
+      </div>
+      <div class="breakdown" id="costBreakdown" style="margin: 10px 2px 0;"></div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2>자동 산출 자재 명세(BOM)</h2>
+        <p class="sub">그리드에서 자동으로 뽑아낸 프로파일 부재입니다. 직접 편집이 필요하면 "자재 직접입력 원가 계산기"를 이용하세요.</p>
+        <table class="items">
+          <thead><tr><th>길이(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">중량(kg)</th><th style="text-align:right;">재료+가공비</th></tr></thead>
+          <tbody id="bomBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="note">
+    ※ 3D 미리보기의 부재 굵기는 실제 단면(20mm×100mm)을 그대로 표현한 것이 아니라, 골격 형태 확인용 단순화된 모델입니다 · 원가 계산 로직(배합비·kg당 단가·설비임률 배분)은 자재 직접입력 계산기와 동일합니다 · 배송비·조립비는 포함되지 않습니다 · 설정값은 이 브라우저에만 저장됩니다.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  const DEFAULTS = {
+    r_wood: 50, r_mel: 20, r_plastic: 28, r_add: 2,
+    p_wood: 300, p_mel: 150, p_plastic: 700, p_add: 3400,
+    p_compound: 450, p_prod: 400,
+    wPerM: 2.72,
+    imryul: 2000000,
+    setCount: 1,
+    batchTotal: 1000,
+    markupRate: 30,
+  };
+  const DEFAULT_COLS_STR = '60,60,60';
+  const DEFAULT_ROWS_STR = '35,35,35';
+  const DEFAULT_DEPTH = 35;
+  const DEFAULT_HARDWARE = [
+    { id: 1, name: 'ㄷ찬넬(연결 브라켓)', price: 800, qty: 1 },
+    { id: 2, name: '피스(나사)', price: 80, qty: 4 },
+  ];
+
+  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
+
+  let cols = [60, 60, 60];   // widths, cm, left->right
+  let rows = [35, 35, 35];   // heights, cm, bottom->top
+  let activeCells = new Set(); // "r,c"
+  let hardwareItems = DEFAULT_HARDWARE.map(h => ({ ...h }));
+  let nextHwId = 3;
+  let batchMode = 'own';
+  let markupMode = 'markup';
+
+  function fillAllCells() {
+    activeCells = new Set();
+    for (let r = 0; r < rows.length; r++) {
+      for (let c = 0; c < cols.length; c++) activeCells.add(r + ',' + c);
+    }
+  }
+  fillAllCells();
+
+  function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+  function fmt2(n) { return (Math.round(n * 100) / 100).toLocaleString('ko-KR'); }
+  function parseCsvNums(str) {
+    return (str || '').split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
+  }
+
+  // ---------- persistence ----------
+  function saveState() {
+    try {
+      const state = {};
+      settingIds.forEach(id => state[id] = $(id).value);
+      state.colsInput = $('colsInput').value;
+      state.rowsInput = $('rowsInput').value;
+      state.gridDepth = $('gridDepth').value;
+      state.activeCells = [...activeCells];
+      state.hardwareItems = hardwareItems;
+      state.batchMode = batchMode;
+      state.markupMode = markupMode;
+      state.markupRate = $('markupRate').value;
+      state.imryulCustom = $('imryulCustom').value;
+      state.setCount = $('setCount').value;
+      state.batchTotal = $('batchTotal').value;
+      window.localStorage.setItem('mgpk_configurator_state_v1', JSON.stringify(state));
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  function loadState() {
+    try {
+      const raw = window.localStorage.getItem('mgpk_configurator_state_v1');
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      settingIds.forEach(id => { if (state[id] !== undefined) $(id).value = state[id]; });
+      if (state.colsInput) $('colsInput').value = state.colsInput;
+      if (state.rowsInput) $('rowsInput').value = state.rowsInput;
+      if (state.gridDepth) $('gridDepth').value = state.gridDepth;
+      cols = parseCsvNums($('colsInput').value);
+      rows = parseCsvNums($('rowsInput').value);
+      if (!cols.length) cols = [60, 60, 60];
+      if (!rows.length) rows = [35, 35, 35];
+      if (state.activeCells && state.activeCells.length) {
+        activeCells = new Set(state.activeCells);
+      } else {
+        fillAllCells();
+      }
+      if (state.hardwareItems && state.hardwareItems.length) { hardwareItems = state.hardwareItems; nextHwId = Math.max(...hardwareItems.map(i=>i.id)) + 1; }
+      if (state.batchMode) {
+        batchMode = state.batchMode;
+        $('mode_own').classList.toggle('active', batchMode === 'own');
+        $('mode_shared').classList.toggle('active', batchMode === 'shared');
+        $('sharedBatchRow').style.display = batchMode === 'shared' ? 'flex' : 'none';
+      }
+      if (state.markupMode) {
+        markupMode = state.markupMode;
+        $('mode_markup').classList.toggle('active', markupMode === 'markup');
+        $('mode_margin').classList.toggle('active', markupMode === 'margin');
+      }
+      if (state.markupRate) $('markupRate').value = state.markupRate;
+      if (state.imryulCustom) $('imryulCustom').value = state.imryulCustom;
+      if (state.setCount) $('setCount').value = state.setCount;
+      if (state.batchTotal) $('batchTotal').value = state.batchTotal;
+    } catch (e) { /* start fresh */ }
+  }
+
+  function resetDefaults() {
+    Object.keys(DEFAULTS).forEach(k => { if ($(k)) $(k).value = DEFAULTS[k]; });
+    $('colsInput').value = DEFAULT_COLS_STR;
+    $('rowsInput').value = DEFAULT_ROWS_STR;
+    $('gridDepth').value = DEFAULT_DEPTH;
+    cols = parseCsvNums(DEFAULT_COLS_STR);
+    rows = parseCsvNums(DEFAULT_ROWS_STR);
+    fillAllCells();
+    hardwareItems = DEFAULT_HARDWARE.map(h => ({ ...h }));
+    nextHwId = 3;
+    batchMode = 'own';
+    $('mode_own').classList.add('active');
+    $('mode_shared').classList.remove('active');
+    $('sharedBatchRow').style.display = 'none';
+    markupMode = 'markup';
+    $('mode_markup').classList.add('active');
+    $('mode_margin').classList.remove('active');
+    $('imryulCustom').value = 2000000;
+    document.querySelectorAll('.imryul-presets .preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.imryul-presets .preset-btn[data-imryul="2000000"]').classList.add('active');
+    $('setCount').value = 1;
+    $('batchTotal').value = 1000;
+    renderGridEditor();
+    renderHardware();
+    rebuildScene();
+    calc();
+    saveState();
+  }
+
+  // ---------- hardware table ----------
+  function renderHardware() {
+    const body = $('hardwareBody');
+    body.innerHTML = '';
+    hardwareItems.forEach(hw => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" value="${hw.name.replace(/"/g, '&quot;')}" data-hwfield="name" data-hwid="${hw.id}"></td>
+        <td><input type="number" min="0" value="${hw.price}" data-hwfield="price" data-hwid="${hw.id}"></td>
+        <td><input type="number" min="0" step="0.5" value="${hw.qty}" data-hwfield="qty" data-hwid="${hw.id}"></td>
+        <td><button class="del-btn" data-hwdel="${hw.id}" aria-label="삭제">×</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const id = parseInt(e.target.dataset.hwid, 10);
+        const field = e.target.dataset.hwfield;
+        const hw = hardwareItems.find(h => h.id === id);
+        if (hw) hw[field] = field === 'name' ? e.target.value : (parseFloat(e.target.value) || 0);
+        calc(); saveState();
+      });
+    });
+    body.querySelectorAll('[data-hwdel]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.dataset.hwdel, 10);
+        hardwareItems = hardwareItems.filter(h => h.id !== id);
+        renderHardware(); calc(); saveState();
+      });
+    });
+  }
+
+  // ---------- grid editor (2D click grid) ----------
+  function renderGridEditor() {
+    const editor = $('gridEditor');
+    editor.innerHTML = '';
+    editor.style.gridTemplateColumns = `repeat(${cols.length}, minmax(28px, 1fr))`;
+    // visual rows top(last index) -> bottom(index 0)
+    for (let rVis = rows.length - 1; rVis >= 0; rVis--) {
+      for (let c = 0; c < cols.length; c++) {
+        const key = rVis + ',' + c;
+        const cell = document.createElement('div');
+        cell.className = 'grid-cell' + (activeCells.has(key) ? '' : ' off');
+        cell.dataset.key = key;
+        cell.title = `${c + 1}열 × ${rVis + 1}행`;
+        cell.addEventListener('click', () => {
+          if (activeCells.has(key)) activeCells.delete(key); else activeCells.add(key);
+          cell.classList.toggle('off');
+          rebuildScene(); calc(); saveState();
+        });
+        editor.appendChild(cell);
+      }
+    }
+    $('gridHint').textContent = `${cols.length}열 × ${rows.length}행 · 활성 모듈 ${activeCells.size}개`;
+  }
+
+  // ---------- BOM generation from grid ----------
+  function computeFrame() {
+    const colX = [0]; cols.forEach(w => colX.push(colX[colX.length - 1] + w));
+    const rowY = [0]; rows.forEach(h => rowY.push(rowY[rowY.length - 1] + h));
+    const depth = parseFloat($('gridDepth').value) || 0;
+    const planes = [0, 1]; // 0 = front (z=0), 1 = back (z=depth)
+
+    const hBars = new Map();
+    const vBars = new Map();
+    const dBars = new Map();
+
+    activeCells.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (r < 0 || r >= rows.length || c < 0 || c >= cols.length) return;
+      const w = cols[c], h = rows[r];
+
+      [r, r + 1].forEach(rowB => {
+        planes.forEach(pl => {
+          const k = `h|${rowB}|${c}|${pl}`;
+          if (!hBars.has(k)) hBars.set(k, { len: w, rowB, c, plane: pl });
+        });
+      });
+      [c, c + 1].forEach(colB => {
+        planes.forEach(pl => {
+          const k = `v|${colB}|${r}|${pl}`;
+          if (!vBars.has(k)) vBars.set(k, { len: h, colB, r, plane: pl });
+        });
+      });
+      [c, c + 1].forEach(colB => {
+        [r, r + 1].forEach(rowB => {
+          const k = `d|${colB}|${rowB}`;
+          if (!dBars.has(k)) dBars.set(k, { len: depth, colB, rowB });
+        });
+      });
+    });
+
+    const jointSet = new Set();
+    hBars.forEach(b => { jointSet.add(`${b.c},${b.rowB},${b.plane}`); jointSet.add(`${b.c + 1},${b.rowB},${b.plane}`); });
+    vBars.forEach(b => { jointSet.add(`${b.colB},${b.r},${b.plane}`); jointSet.add(`${b.colB},${b.r + 1},${b.plane}`); });
+    dBars.forEach(b => { jointSet.add(`${b.colB},${b.rowB},0`); jointSet.add(`${b.colB},${b.rowB},1`); });
+
+    return { colX, rowY, depth, hBars, vBars, dBars, jointCount: jointSet.size };
+  }
+
+  function bomFromFrame(frame) {
+    const lenCounts = new Map();
+    const allBars = [...frame.hBars.values(), ...frame.vBars.values(), ...frame.dBars.values()];
+    allBars.forEach(b => {
+      const len = Math.round(b.len * 10) / 10;
+      if (len <= 0) return;
+      lenCounts.set(len, (lenCounts.get(len) || 0) + 1);
+    });
+    return [...lenCounts.entries()].sort((a, b) => a[0] - b[0]).map(([len, qty], i) => ({ id: i + 1, len, qty }));
+  }
+
+  // ---------- pricing (shared math with the material calculator) ----------
+  function getKgRate() {
+    const rw = parseFloat($('r_wood').value) || 0;
+    const rm = parseFloat($('r_mel').value) || 0;
+    const rp = parseFloat($('r_plastic').value) || 0;
+    const ra = parseFloat($('r_add').value) || 0;
+    const sum = rw + rm + rp + ra;
+
+    const pw = parseFloat($('p_wood').value) || 0;
+    const pm = parseFloat($('p_mel').value) || 0;
+    const pp = parseFloat($('p_plastic').value) || 0;
+    const pa = parseFloat($('p_add').value) || 0;
+    const compound = parseFloat($('p_compound').value) || 0;
+    const prod = parseFloat($('p_prod').value) || 0;
+
+    const ratioSumEl = $('ratioSum');
+    if (Math.abs(sum - 100) > 0.05) {
+      ratioSumEl.textContent = `합계 ${sum.toFixed(1)}% — 100%가 되도록 맞춰주세요`;
+      ratioSumEl.style.color = 'var(--error)';
+      ratioSumEl.style.fontWeight = '700';
+    } else {
+      ratioSumEl.textContent = `합계 ${sum.toFixed(1)}%`;
+      ratioSumEl.style.color = 'var(--ink-soft)';
+      ratioSumEl.style.fontWeight = '400';
+    }
+
+    const materialPerKg = (rw*pw + rm*pm + rp*pp + ra*pa) / (sum || 100);
+    return materialPerKg + compound + prod;
+  }
+
+  function calc() {
+    const frame = computeFrame();
+    const bom = bomFromFrame(frame);
+    const kgRate = getKgRate();
+    const wPerCm = parseFloat($('wPerM').value || 0) / 100;
+    const setCount = Math.max(1, parseInt($('setCount').value) || 1);
+
+    const bomBody = $('bomBody');
+    bomBody.innerHTML = '';
+    let setWeight = 0;
+    bom.forEach(item => {
+      const w = item.len * wPerCm * item.qty;
+      setWeight += w;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${fmt2(item.len)}</td><td class="num">${item.qty}</td><td class="num">${fmt2(w)}</td><td class="num">${fmt(w * kgRate)}원</td>`;
+      bomBody.appendChild(tr);
+    });
+    if (!bom.length) {
+      bomBody.innerHTML = '<tr><td colspan="4" style="color:var(--ink-soft);">활성화된 모듈이 없습니다. 그리드에서 칸을 클릭해 모듈을 배치하세요.</td></tr>';
+    }
+
+    const totalWeight = setWeight * setCount;
+    const totalMaterialCost = totalWeight * kgRate;
+
+    const hardwareCostPerSet = hardwareItems.reduce((sum, hw) => sum + (parseFloat(hw.price) || 0) * (parseFloat(hw.qty) || 0), 0) * frame.jointCount;
+    const totalHardwareCost = hardwareCostPerSet * setCount;
+
+    const imryul = parseFloat($('imryulCustom').value) || 0;
+    let batchWeight = totalWeight;
+    const warnEl = $('batchWarn');
+    warnEl.style.display = 'none';
+    if (batchMode === 'shared') {
+      const bt = parseFloat($('batchTotal').value) || 0;
+      batchWeight = bt;
+      if (bt < totalWeight) {
+        warnEl.style.display = 'block';
+        warnEl.textContent = `입력하신 배치 총량(${fmt2(bt)}kg)이 이 주문의 총 소요량(${fmt2(totalWeight)}kg)보다 적습니다. 배치 총량을 늘려주세요.`;
+        batchWeight = totalWeight;
+      }
+    }
+    const allocatedImryul = batchWeight > 0 ? imryul * (totalWeight / batchWeight) : 0;
+    const totalCost = totalMaterialCost + totalHardwareCost + allocatedImryul;
+    const perSet = totalCost / setCount;
+
+    const rate = Math.max(0, parseFloat($('markupRate').value) || 0);
+    let totalPrice;
+    if (markupMode === 'margin') {
+      const r = Math.min(rate, 99.9) / 100;
+      totalPrice = totalCost / (1 - r);
+    } else {
+      totalPrice = totalCost * (1 + rate / 100);
+    }
+    const totalMargin = totalPrice - totalCost;
+    const perSetPrice = totalPrice / setCount;
+    const perSetMargin = totalMargin / setCount;
+    const effMarginPct = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
+
+    $('perSetCost').textContent = fmt(perSet) + '원';
+    $('perSetPrice').textContent = fmt(perSetPrice) + '원';
+    $('perSetMargin').textContent = fmt(perSetMargin) + '원';
+    $('jointCount').textContent = frame.jointCount + '개';
+    $('totalWeight').textContent = fmt2(totalWeight) + 'kg';
+    $('allocImryul').textContent = fmt(allocatedImryul) + '원';
+
+    $('costBreakdown').innerHTML =
+      `원가 구성(세트 1건) — 재료비 <b>${fmt(totalMaterialCost / setCount)}원</b> · 결합부속품 <b>${fmt(totalHardwareCost / setCount)}원</b>(조인트 ${frame.jointCount}개) · 설비임률배분 <b>${fmt(allocatedImryul / setCount)}원</b> ` +
+      `= 원가 <b>${fmt(perSet)}원</b> · 마진 <b>${fmt(perSetMargin)}원</b>(판매가 대비 <b>${effMarginPct.toFixed(1)}%</b>) → 판매가 <b>${fmt(perSetPrice)}원</b>`;
+  }
+
+  // ---------- 3D scene ----------
+  const HAS_THREE = typeof THREE !== 'undefined';
+  let renderer, scene, camera, canvasWrap, barGroup;
+  let cam = { theta: Math.PI / 4, phi: Math.PI / 3, radius: 260, target: { x: 0, y: 0, z: 0 } };
+  let dragging = false, lastX = 0, lastY = 0;
+  let matPost, matRail, matDepth;
+  const BAR_THICK = 3; // cm, visualization-only cross-section
+
+  function initScene() {
+    canvasWrap = $('canvasWrap');
+    if (!HAS_THREE) {
+      canvasWrap.innerHTML = '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:var(--ink-soft); font-size:13px; line-height:1.6;">3D 미리보기를 불러오지 못했습니다 (네트워크 문제로 Three.js 로드 실패).<br>그리드 편집·BOM·원가/판매가 계산은 정상 작동합니다.</div>';
+      return;
+    }
+    cam.target = new THREE.Vector3(0, 0, 0);
+    matPost = new THREE.MeshStandardMaterial({ color: 0xA9713F, roughness: 0.75 });
+    matRail = new THREE.MeshStandardMaterial({ color: 0x8A6A4A, roughness: 0.75 });
+    matDepth = new THREE.MeshStandardMaterial({ color: 0x6F5636, roughness: 0.8 });
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xE7DFCC);
+
+    camera = new THREE.PerspectiveCamera(45, canvasWrap.clientWidth / canvasWrap.clientHeight, 1, 5000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(canvasWrap.clientWidth, canvasWrap.clientHeight);
+    canvasWrap.appendChild(renderer.domElement);
+
+    const amb = new THREE.AmbientLight(0xffffff, 0.65);
+    scene.add(amb);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+    dir.position.set(150, 300, 200);
+    scene.add(dir);
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
+    dir2.position.set(-150, -100, -200);
+    scene.add(dir2);
+
+    barGroup = new THREE.Group();
+    scene.add(barGroup);
+
+    const dom = renderer.domElement;
+    dom.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; dom.setPointerCapture(e.pointerId); });
+    dom.addEventListener('pointerup', () => { dragging = false; });
+    dom.addEventListener('pointerleave', () => { dragging = false; });
+    dom.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      cam.theta -= dx * 0.008;
+      cam.phi = Math.min(Math.PI - 0.05, Math.max(0.05, cam.phi - dy * 0.008));
+      updateCamera();
+    });
+    dom.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      cam.radius = Math.min(3000, Math.max(20, cam.radius * (1 + e.deltaY * 0.001)));
+      updateCamera();
+    }, { passive: false });
+
+    window.addEventListener('resize', onResize);
+
+    animate();
+  }
+
+  function updateCamera() {
+    if (!HAS_THREE || !camera) return;
+    const { theta, phi, radius, target } = cam;
+    camera.position.set(
+      target.x + radius * Math.sin(phi) * Math.sin(theta),
+      target.y + radius * Math.cos(phi),
+      target.z + radius * Math.sin(phi) * Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+
+  function onResize() {
+    if (!canvasWrap || !renderer) return;
+    const w = canvasWrap.clientWidth, h = canvasWrap.clientHeight;
+    if (!w || !h) return;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (renderer && scene && camera) renderer.render(scene, camera);
+  }
+
+  function rebuildScene() {
+    if (!HAS_THREE || !barGroup) return;
+    while (barGroup.children.length) {
+      const obj = barGroup.children.pop();
+      obj.geometry.dispose();
+    }
+    const frame = computeFrame();
+    const { colX, rowY, depth } = frame;
+    const totalW = colX[colX.length - 1] || 1;
+    const totalH = rowY[rowY.length - 1] || 1;
+    const totalD = depth || 1;
+
+    function addBox(sx, sy, sz, px, py, pz, material) {
+      const geo = new THREE.BoxGeometry(Math.max(sx, 0.1), Math.max(sy, 0.1), Math.max(sz, 0.1));
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(px, py, pz);
+      barGroup.add(mesh);
+    }
+
+    // center the whole frame at origin: shift by half extents
+    const ox = -totalW / 2, oy = -totalH / 2, oz = -totalD / 2;
+
+    frame.hBars.forEach(b => {
+      const x = colX[b.c] + b.len / 2 + ox;
+      const y = rowY[b.rowB] + oy;
+      const z = (b.plane === 0 ? 0 : totalD) + oz;
+      addBox(b.len, BAR_THICK, BAR_THICK, x, y, z, matRail);
+    });
+    frame.vBars.forEach(b => {
+      const x = colX[b.colB] + ox;
+      const y = rowY[b.r] + b.len / 2 + oy;
+      const z = (b.plane === 0 ? 0 : totalD) + oz;
+      addBox(BAR_THICK, b.len, BAR_THICK, x, y, z, matPost);
+    });
+    frame.dBars.forEach(b => {
+      const x = colX[b.colB] + ox;
+      const y = rowY[b.rowB] + oy;
+      const z = b.len / 2 + oz;
+      addBox(BAR_THICK, BAR_THICK, b.len, x, y, z, matDepth);
+    });
+
+    cam.target.set(0, 0, 0);
+    cam.radius = Math.max(120, Math.sqrt(totalW * totalW + totalH * totalH + totalD * totalD) * 1.15);
+    updateCamera();
+  }
+
+  // ---------- wiring ----------
+  $('applyGridBtn').addEventListener('click', () => {
+    const newCols = parseCsvNums($('colsInput').value);
+    const newRows = parseCsvNums($('rowsInput').value);
+    if (!newCols.length || !newRows.length) return;
+    cols = newCols; rows = newRows;
+    fillAllCells();
+    renderGridEditor();
+    rebuildScene();
+    calc();
+    saveState();
+  });
+
+  $('addHwBtn').addEventListener('click', () => {
+    const name = ($('customHwName').value || '').trim();
+    const price = parseFloat($('customHwPrice').value) || 0;
+    const qty = parseFloat($('customHwQty').value) || 0;
+    if (!name) return;
+    hardwareItems.push({ id: nextHwId++, name, price, qty });
+    $('customHwName').value = ''; $('customHwPrice').value = ''; $('customHwQty').value = 1;
+    renderHardware(); calc(); saveState();
+  });
+
+  $('mode_markup').addEventListener('click', () => {
+    markupMode = 'markup';
+    $('mode_markup').classList.add('active'); $('mode_margin').classList.remove('active');
+    calc(); saveState();
+  });
+  $('mode_margin').addEventListener('click', () => {
+    markupMode = 'margin';
+    $('mode_margin').classList.add('active'); $('mode_markup').classList.remove('active');
+    calc(); saveState();
+  });
+  $('markupRate').addEventListener('input', () => { calc(); saveState(); });
+
+  $('mode_own').addEventListener('click', () => {
+    batchMode = 'own';
+    $('mode_own').classList.add('active'); $('mode_shared').classList.remove('active');
+    $('sharedBatchRow').style.display = 'none';
+    calc(); saveState();
+  });
+  $('mode_shared').addEventListener('click', () => {
+    batchMode = 'shared';
+    $('mode_shared').classList.add('active'); $('mode_own').classList.remove('active');
+    $('sharedBatchRow').style.display = 'flex';
+    calc(); saveState();
+  });
+
+  document.querySelectorAll('.imryul-presets .preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.imryul-presets .preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $('imryulCustom').value = btn.dataset.imryul;
+      calc(); saveState();
+    });
+  });
+  $('imryulCustom').addEventListener('input', () => { calc(); saveState(); });
+  $('setCount').addEventListener('input', () => { calc(); saveState(); });
+  $('batchTotal').addEventListener('input', () => { calc(); saveState(); });
+  $('gridDepth').addEventListener('input', () => { rebuildScene(); calc(); saveState(); });
+
+  settingIds.forEach(id => { $(id).addEventListener('input', () => { calc(); saveState(); }); });
+
+  $('resetBtn').addEventListener('click', resetDefaults);
+
+  // ---------- init ----------
+  loadState();
+  renderGridEditor();
+  renderHardware();
+  initScene();
+  rebuildScene();
+  updateCamera();
+  calc();
+  onResize();
+})();
+</script>
+</body>
+</html>
