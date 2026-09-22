@@ -339,6 +339,16 @@
         </table>
       </div>
 
+      <div class="card" style="margin-top:16px;">
+        <h2>이 모듈러 가구 저장 → 계산기로 보내기</h2>
+        <p class="sub">이름을 넣고 저장하면, "자재 직접입력 원가 계산기" 페이지의 "여러 가구 합계" 목록에 이 프레임의 자재(BOM)·결합부속품·원가·판매가가 함께 저장됩니다. 그리드는 계속 이어서 수정할 수 있도록 비워지지 않습니다.</p>
+        <div class="add-row" style="margin-top:0;">
+          <input type="text" id="saveName" placeholder="가구 이름 (예: 3단 선반)" style="width:160px;">
+          <button class="add-btn" id="saveFurnitureBtn">계산기로 저장</button>
+        </div>
+        <div class="breakdown" id="saveStatus" style="margin-top:10px;"></div>
+      </div>
+
     </div>
   </div>
 
@@ -379,6 +389,7 @@
   let nextHwId = 3;
   let batchMode = 'own';
   let markupMode = 'markup';
+  let lastCalc = { setCount: 1, perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, items: [], hardwareSummary: [] };
 
   function fillAllCells() {
     activeCells = new Set();
@@ -688,6 +699,12 @@
     $('costBreakdown').innerHTML =
       `원가 구성(세트 1건) — 재료비 <b>${fmt(totalMaterialCost / setCount)}원</b> · 결합부속품 <b>${fmt(totalHardwareCost / setCount)}원</b>(조인트 ${frame.jointCount}개) · 설비임률배분 <b>${fmt(allocatedImryul / setCount)}원</b> ` +
       `= 원가 <b>${fmt(perSet)}원</b> · 마진 <b>${fmt(perSetMargin)}원</b>(판매가 대비 <b>${effMarginPct.toFixed(1)}%</b>) → 판매가 <b>${fmt(perSetPrice)}원</b>`;
+
+    lastCalc = {
+      setCount, perSetCost: perSet, perSetPrice, totalCost, totalPrice,
+      items: bom.map(i => ({ len: i.len, qty: i.qty })),
+      hardwareSummary: hardwareItems.map(h => ({ name: h.name, qty: h.qty * frame.jointCount })),
+    };
   }
 
   // ---------- 3D scene ----------
@@ -844,6 +861,41 @@
     hardwareItems.push({ id: nextHwId++, name, price, qty });
     $('customHwName').value = ''; $('customHwPrice').value = ''; $('customHwQty').value = 1;
     renderHardware(); calc(); saveState();
+  });
+
+  function pushToSharedQuote(entry) {
+    try {
+      const raw = window.localStorage.getItem('mgpk_saved_furniture_v1');
+      const list = raw ? JSON.parse(raw) : [];
+      list.push(entry);
+      window.localStorage.setItem('mgpk_saved_furniture_v1', JSON.stringify(list));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  $('saveFurnitureBtn').addEventListener('click', () => {
+    if (!lastCalc.items.length) {
+      $('saveStatus').innerHTML = '<span style="color:var(--error);">저장할 자재가 없습니다. 그리드에서 모듈을 배치하세요.</span>';
+      return;
+    }
+    const name = ($('saveName').value || '').trim() || `3D 프레임 ${new Date().toLocaleTimeString('ko-KR')}`;
+    const ok = pushToSharedQuote({
+      id: Date.now(),
+      name,
+      source: 'configurator',
+      setCount: lastCalc.setCount,
+      perSetPrice: lastCalc.perSetPrice,
+      totalCost: lastCalc.totalCost,
+      totalPrice: lastCalc.totalPrice,
+      items: lastCalc.items,
+      hardwareSummary: lastCalc.hardwareSummary,
+    });
+    $('saveName').value = '';
+    $('saveStatus').innerHTML = ok
+      ? `저장했습니다 — <b>${name}</b> (세트당 판매가 <b>${fmt(lastCalc.perSetPrice)}원</b>). <a href="index.html" style="color:var(--moss); font-weight:700;">계산기에서 전체 견적 확인하기 →</a>`
+      : '<span style="color:var(--error);">저장에 실패했습니다 (브라우저 저장소를 사용할 수 없습니다).</span>';
   });
 
   $('mode_markup').addEventListener('click', () => {

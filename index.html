@@ -414,13 +414,13 @@
 
       <div class="card" style="margin-top:16px;">
         <h2>여러 가구 합계 (견적서)</h2>
-        <p class="sub">가구 하나를 다 만들었으면 이름을 넣고 저장하세요. 자재·결합부속품 입력칸이 다음 가구용으로 비워지고, 아래 합계에는 저장된 가구들과 지금 만들고 있는 가구가 모두 더해집니다.</p>
+        <p class="sub">가구 하나를 다 만들었으면 이름을 넣고 저장하세요. 자재·결합부속품 입력칸이 다음 가구용으로 비워지고, 아래 합계에는 저장된 가구들과 지금 만들고 있는 가구가 모두 더해집니다. 3D 컨피규레이터에서 저장한 가구도 여기 함께 표시됩니다.</p>
         <div class="add-row" style="margin-top:0;">
           <input type="text" id="saveName" placeholder="가구 이름 (예: 책상 A)" style="width:160px;">
           <button class="add-btn" id="saveFurnitureBtn">이 가구 저장하고 다음 가구 시작</button>
         </div>
         <table class="items" id="savedTable" style="margin-top:14px; display:none;">
-          <thead><tr><th>가구명</th><th style="text-align:right;">세트 수</th><th style="text-align:right;">세트당 판매가</th><th style="text-align:right;">소계(판매가)</th><th></th></tr></thead>
+          <thead><tr><th>가구명</th><th>자재(BOM)</th><th style="text-align:right;">세트 수</th><th style="text-align:right;">세트당 판매가</th><th style="text-align:right;">소계(판매가)</th><th></th></tr></thead>
           <tbody id="savedBody"></tbody>
         </table>
         <div class="breakdown" id="savedGrandTotal" style="margin-top:12px;"></div>
@@ -831,8 +831,12 @@
     table.style.display = savedFurniture.length ? '' : 'none';
     savedFurniture.forEach(f => {
       const tr = document.createElement('tr');
+      const bomText = (f.items || []).map(i => `${fmt2(i.len)}cm×${i.qty}`).join(', ') || '–';
+      const hwText = (f.hardwareSummary || []).map(h => `${h.name}×${fmt2(h.qty)}`).join(', ');
+      const sourceTag = f.source === 'configurator' ? ' <span style="color:var(--moss); font-size:11px;">[3D]</span>' : '';
       tr.innerHTML = `
-        <td>${f.name}</td>
+        <td>${f.name}${sourceTag}</td>
+        <td style="font-size:12px; color:var(--ink-soft);" title="${hwText.replace(/"/g,'&quot;')}">${bomText}</td>
         <td class="num">${f.setCount}</td>
         <td class="num">${fmt(f.perSetPrice)}원</td>
         <td class="num">${fmt(f.totalPrice)}원</td>
@@ -907,10 +911,13 @@
     savedFurniture.push({
       id: nextSavedId++,
       name,
+      source: 'index',
       setCount: lastCalc.setCount,
       perSetPrice: lastCalc.perSetPrice,
       totalCost: lastCalc.totalCost,
       totalPrice: lastCalc.totalPrice,
+      items: items.map(i => ({ len: i.len, qty: i.qty })),
+      hardwareSummary: hardwareItems.map(h => ({ name: h.name, qty: h.qty })),
     });
     saveSavedFurniture();
     renderSaved();
