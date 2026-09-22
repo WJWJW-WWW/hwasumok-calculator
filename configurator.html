@@ -330,6 +330,15 @@
       </div>
 
       <div class="card">
+        <h2>중간 가로대(행 경계) 옵션</h2>
+        <p class="sub">
+          체크된 경계에는 기본대로 가로대(상판)가 들어가서, 그 위아래 판넬이 거기서 끊깁니다.
+          체크를 해제하면 그 가로대를 프레임에서 빼고, 위아래 판넬이 끊기지 않고 이어져서 더 긴 표준 판넬(50·100cm)을 한 번에 쓸 수 있습니다.
+        </p>
+        <div class="panel-row-select" id="railOptions"></div>
+      </div>
+
+      <div class="card">
         <h2>판넬 설정</h2>
         <p class="sub">
           행·열·면을 선택하고 "붙이기"/"떼기"를 눌러 적용하세요(행×열 교집합 칸에 적용). 여러 번 눌러서 조합할 수 있습니다.<br>
@@ -446,6 +455,7 @@
   let rows = [35, 35, 35];   // heights, cm, bottom->top
   let activeCells = new Set(); // "r,c"
   let panelFaces = new Map(); // "r,c" -> Set of face codes: front/back/left/right/top/bottom
+  let omittedRowRails = new Set(); // row-boundary indices (1..rows.length-1) whose middle rail is left out
   let hardwareItems = DEFAULT_HARDWARE.map(h => ({ ...h }));
   let nextHwId = 3;
   let batchMode = 'own';
@@ -458,6 +468,7 @@
       for (let c = 0; c < cols.length; c++) activeCells.add(r + ',' + c);
     }
     panelFaces = new Map();
+    omittedRowRails = new Set();
   }
   fillAllCells();
 
@@ -477,6 +488,7 @@
       state.gridDepth = $('gridDepth').value;
       state.activeCells = [...activeCells];
       state.panelFaces = [...panelFaces.entries()].map(([k, faces]) => [k, [...faces]]);
+      state.omittedRowRails = [...omittedRowRails];
       state.hardwareItems = hardwareItems;
       state.batchMode = batchMode;
       state.markupMode = markupMode;
@@ -504,6 +516,7 @@
       if (state.activeCells && state.activeCells.length) {
         activeCells = new Set(state.activeCells);
         panelFaces = new Map((state.panelFaces || []).map(([k, faces]) => [k, new Set(faces)]));
+        omittedRowRails = new Set(state.omittedRowRails || []);
       } else {
         fillAllCells();
       }
@@ -551,6 +564,7 @@
     renderGridEditor();
     renderPanelRowSelect();
     renderPanelColSelect();
+    renderRailOptions();
     renderHardware();
     rebuildScene();
     calc();
@@ -651,6 +665,29 @@
     });
   }
 
+  // ---------- internal row-rail options ----------
+  function renderRailOptions() {
+    const wrap = $('railOptions');
+    wrap.innerHTML = '';
+    if (rows.length < 2) {
+      wrap.innerHTML = '<span style="font-size:12.5px; color:var(--ink-soft);">행이 2개 이상이어야 중간 가로대가 생깁니다.</span>';
+      return;
+    }
+    for (let rb = 1; rb < rows.length; rb++) {
+      const label = document.createElement('label');
+      const checked = !omittedRowRails.has(rb);
+      label.innerHTML = `<input type="checkbox" class="rail-cb" value="${rb}" ${checked ? 'checked' : ''}>${rb}행-${rb + 1}행 사이`;
+      wrap.appendChild(label);
+    }
+    wrap.querySelectorAll('.rail-cb').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const rb = parseInt(e.target.value, 10);
+        if (e.target.checked) omittedRowRails.delete(rb); else omittedRowRails.add(rb);
+        rebuildScene(); calc(); saveState();
+      });
+    });
+  }
+
   // ---------- BOM generation from grid ----------
   function computeFrame() {
     const colX = [0]; cols.forEach(w => colX.push(colX[colX.length - 1] + w));
@@ -668,6 +705,7 @@
       const w = cols[c], h = rows[r];
 
       [r, r + 1].forEach(rowB => {
+        if (rowB > 0 && rowB < rows.length && omittedRowRails.has(rowB)) return; // 중간 가로대를 뺀 경계
         planes.forEach(pl => {
           const k = `h|${rowB}|${c}|${pl}`;
           if (!hBars.has(k)) hBars.set(k, { len: w, rowB, c, plane: pl });
@@ -717,17 +755,19 @@
     const { colX, rowY, depth } = frame;
     const panels = [];
 
-    // x-facing panels (left/right dividers) at column boundaries
+    // x-facing panels (left/right dividers) at column boundaries — 같은 열 경계에서 세로로 이어진 칸은 중간 가로대가 빠졌으면 병합
     for (let cb = 0; cb <= cols.length; cb++) {
-      for (let r = 0; r < rows.length; r++) {
-        const wantFromLeft = cellActive(r, cb - 1) && cellHasFace(r, cb - 1, 'right');
-        const wantFromRight = cellActive(r, cb) && cellHasFace(r, cb, 'left');
-        if (wantFromLeft || wantFromRight) {
-          panels.push({ orient: 'x', pos: colX[cb], y0: rowY[r], y1: rowY[r + 1], z0: 0, z1: depth, w: rows[r], h: depth });
-        }
+      let r = 0;
+      while (r < rows.length) {
+        const wants = (rr) => (cellActive(rr, cb - 1) && cellHasFace(rr, cb - 1, 'right')) || (cellActive(rr, cb) && cellHasFace(rr, cb, 'left'));
+        if (!wants(r)) { r++; continue; }
+        let rEnd = r;
+        while (rEnd + 1 < rows.length && wants(rEnd + 1) && omittedRowRails.has(rEnd + 1)) rEnd++;
+        panels.push({ orient: 'x', pos: colX[cb], y0: rowY[r], y1: rowY[rEnd + 1], z0: 0, z1: depth, w: rowY[rEnd + 1] - rowY[r], h: depth });
+        r = rEnd + 1;
       }
     }
-    // y-facing panels (top/bottom) at row boundaries
+    // y-facing panels (top/bottom) at row boundaries — 위아래로 이어붙는 개념이 없어 칸별 그대로 계산
     for (let rb = 0; rb <= rows.length; rb++) {
       for (let c = 0; c < cols.length; c++) {
         const wantFromBelow = cellActive(rb - 1, c) && cellHasFace(rb - 1, c, 'top');
@@ -737,14 +777,21 @@
         }
       }
     }
-    // z-facing panels (front/back) per active cell
-    activeCells.forEach(key => {
-      const [r, c] = key.split(',').map(Number);
-      if (cellHasFace(r, c, 'front')) {
-        panels.push({ orient: 'z', pos: 0, x0: colX[c], x1: colX[c + 1], y0: rowY[r], y1: rowY[r + 1], w: cols[c], h: rows[r] });
-      }
-      if (cellHasFace(r, c, 'back')) {
-        panels.push({ orient: 'z', pos: depth, x0: colX[c], x1: colX[c + 1], y0: rowY[r], y1: rowY[r + 1], w: cols[c], h: rows[r] });
+    // z-facing panels (front/back) — 같은 열에서 세로로 이어진 칸은 중간 가로대가 빠졌으면 병합
+    ['front', 'back'].forEach(face => {
+      for (let c = 0; c < cols.length; c++) {
+        let r = 0;
+        while (r < rows.length) {
+          if (!cellActive(r, c) || !cellHasFace(r, c, face)) { r++; continue; }
+          let rEnd = r;
+          while (rEnd + 1 < rows.length && cellActive(rEnd + 1, c) && cellHasFace(rEnd + 1, c, face) && omittedRowRails.has(rEnd + 1)) rEnd++;
+          panels.push({
+            orient: 'z', pos: face === 'front' ? 0 : depth,
+            x0: colX[c], x1: colX[c + 1], y0: rowY[r], y1: rowY[rEnd + 1],
+            w: cols[c], h: rowY[rEnd + 1] - rowY[r],
+          });
+          r = rEnd + 1;
+        }
       }
     });
 
@@ -1068,6 +1115,7 @@
     renderGridEditor();
     renderPanelRowSelect();
     renderPanelColSelect();
+    renderRailOptions();
     rebuildScene();
     calc();
     saveState();
@@ -1209,6 +1257,7 @@
   renderGridEditor();
   renderPanelRowSelect();
   renderPanelColSelect();
+  renderRailOptions();
   renderHardware();
   initScene();
   rebuildScene();
