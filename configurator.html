@@ -160,6 +160,7 @@
   .toggle-btn.active { background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700; }
 
   .imryul-presets { display: flex; gap: 8px; margin-bottom: 10px; }
+  .preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
   .preset-btn {
     background: var(--paper-dark); border: 1px solid var(--line); color: var(--ink); border-radius: 999px;
     padding: 6px 14px; font-size: 12.5px; cursor: pointer; font-family: inherit;
@@ -234,16 +235,23 @@
     <div>
       <div class="card">
         <h2>그리드(프레임) 구성</h2>
-        <p class="sub">쉼표로 구분해 각 칸의 폭/높이를 입력하세요. 예: 60,60,60 → 3칸.</p>
+        <p class="sub">표준 규격(25cm 단위) 버튼으로 칸을 추가하세요. 직접 쉼표로 입력해 수정할 수도 있습니다. 예: 60,60,60 → 3칸.</p>
+
+        <label style="font-size:13.5px;">열 폭(cm, 왼쪽→오른쪽)</label>
+        <div class="preset-row" id="colPresetRow" style="margin:6px 0 8px;"></div>
         <div class="field-row" style="flex-direction:column; align-items:stretch; gap:4px;">
-          <label>열 폭(cm, 왼쪽→오른쪽)</label>
           <input type="text" id="colsInput" class="wide" value="60,60,60">
         </div>
+        <button class="reset-btn" id="removeLastColBtn" style="margin-top:6px;">마지막 열 삭제</button>
+
+        <label style="font-size:13.5px; margin-top:14px; display:block;">행 높이(cm, 아래→위)</label>
+        <div class="preset-row" id="rowPresetRow" style="margin:6px 0 8px;"></div>
         <div class="field-row" style="flex-direction:column; align-items:stretch; gap:4px;">
-          <label>행 높이(cm, 아래→위)</label>
           <input type="text" id="rowsInput" class="wide" value="35,35,35">
         </div>
-        <div class="field-row"><label>깊이</label><div><input type="number" id="gridDepth" value="35" min="1"><span class="unit">cm</span></div></div>
+        <button class="reset-btn" id="removeLastRowBtn" style="margin-top:6px;">마지막 행 삭제</button>
+
+        <div class="field-row" style="margin-top:10px;"><label>깊이</label><div><input type="number" id="gridDepth" value="35" min="1"><span class="unit">cm</span></div></div>
         <button class="apply-btn" id="applyGridBtn" style="width:100%; margin-top:10px;">그리드 재생성</button>
       </div>
 
@@ -1173,7 +1181,7 @@
   }
 
   // ---------- wiring ----------
-  $('applyGridBtn').addEventListener('click', () => {
+  function applyGrid() {
     const newCols = parseCsvNums($('colsInput').value);
     const newRows = parseCsvNums($('rowsInput').value);
     if (!newCols.length || !newRows.length) return;
@@ -1187,6 +1195,63 @@
     rebuildScene();
     calc();
     saveState();
+  }
+  $('applyGridBtn').addEventListener('click', applyGrid);
+
+  // ---------- 25cm 단위 표준 규격으로 열/행 추가 ----------
+  const GRID_UNIT_PRESETS = [
+    { len: 25, label: '+25cm' },
+    { len: 50, label: '+50cm' },
+    { len: 100, label: '+1m' },
+    { len: 125, label: '+1m25cm' },
+    { len: 150, label: '+1m50cm' },
+    { len: 200, label: '+2m' },
+  ];
+
+  function renderGridUnitPresets() {
+    const colWrap = $('colPresetRow');
+    const rowWrap = $('rowPresetRow');
+    colWrap.innerHTML = '';
+    rowWrap.innerHTML = '';
+    GRID_UNIT_PRESETS.forEach(p => {
+      const colBtn = document.createElement('button');
+      colBtn.className = 'preset-btn';
+      colBtn.textContent = p.label;
+      colBtn.addEventListener('click', () => {
+        const list = parseCsvNums($('colsInput').value);
+        list.push(p.len);
+        $('colsInput').value = list.join(',');
+        applyGrid();
+      });
+      colWrap.appendChild(colBtn);
+
+      const rowBtn = document.createElement('button');
+      rowBtn.className = 'preset-btn';
+      rowBtn.textContent = p.label;
+      rowBtn.addEventListener('click', () => {
+        const list = parseCsvNums($('rowsInput').value);
+        list.push(p.len);
+        $('rowsInput').value = list.join(',');
+        applyGrid();
+      });
+      rowWrap.appendChild(rowBtn);
+    });
+  }
+  renderGridUnitPresets();
+
+  $('removeLastColBtn').addEventListener('click', () => {
+    const list = parseCsvNums($('colsInput').value);
+    if (list.length <= 1) return;
+    list.pop();
+    $('colsInput').value = list.join(',');
+    applyGrid();
+  });
+  $('removeLastRowBtn').addEventListener('click', () => {
+    const list = parseCsvNums($('rowsInput').value);
+    if (list.length <= 1) return;
+    list.pop();
+    $('rowsInput').value = list.join(',');
+    applyGrid();
   });
 
   // ---------- panel apply/remove ----------
