@@ -413,6 +413,20 @@
       <div class="breakdown" id="costBreakdown" style="margin: 10px 2px 0;"></div>
 
       <div class="card" style="margin-top:16px;">
+        <h2>여러 가구 합계 (견적서)</h2>
+        <p class="sub">가구 하나를 다 만들었으면 이름을 넣고 저장하세요. 자재·결합부속품 입력칸이 다음 가구용으로 비워지고, 아래 합계에는 저장된 가구들과 지금 만들고 있는 가구가 모두 더해집니다.</p>
+        <div class="add-row" style="margin-top:0;">
+          <input type="text" id="saveName" placeholder="가구 이름 (예: 책상 A)" style="width:160px;">
+          <button class="add-btn" id="saveFurnitureBtn">이 가구 저장하고 다음 가구 시작</button>
+        </div>
+        <table class="items" id="savedTable" style="margin-top:14px; display:none;">
+          <thead><tr><th>가구명</th><th style="text-align:right;">세트 수</th><th style="text-align:right;">세트당 판매가</th><th style="text-align:right;">소계(판매가)</th><th></th></tr></thead>
+          <tbody id="savedBody"></tbody>
+        </table>
+        <div class="breakdown" id="savedGrandTotal" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
         <h2>이 가구(세트) 1개에 필요한 자재</h2>
         <p class="sub">길이와 개수를 입력하세요. 아래 버튼으로 자주 쓰는 길이를 빠르게 추가할 수 있습니다.</p>
 
@@ -544,6 +558,9 @@
   let batchMode = 'own'; // 'own' | 'shared'
   let selectedImryulPreset = 2000000;
   let markupMode = 'markup'; // 'markup' (원가 기준) | 'margin' (판매가 기준)
+  let savedFurniture = []; // [{ id, name, setCount, perSetPrice, totalCost, totalPrice }]
+  let nextSavedId = 1;
+  let lastCalc = { perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, setCount: 1 };
 
   const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
 
@@ -589,6 +606,24 @@
       if (state.setCount) $('setCount').value = state.setCount;
       if (state.batchTotal) $('batchTotal').value = state.batchTotal;
     } catch (e) { /* ignore, start fresh */ }
+  }
+
+  function saveSavedFurniture() {
+    try {
+      window.localStorage.setItem('mgpk_saved_furniture_v1', JSON.stringify(savedFurniture));
+    } catch (e) { /* storage unavailable, ignore */ }
+  }
+
+  function loadSavedFurniture() {
+    try {
+      const raw = window.localStorage.getItem('mgpk_saved_furniture_v1');
+      if (!raw) return;
+      const list = JSON.parse(raw);
+      if (Array.isArray(list) && list.length) {
+        savedFurniture = list;
+        nextSavedId = Math.max(...savedFurniture.map(f => f.id)) + 1;
+      }
+    } catch (e) { /* start fresh */ }
   }
 
   function resetDefaults() {
@@ -784,6 +819,49 @@
     $('costBreakdown').innerHTML =
       `원가 구성 — 재료비 <b>${fmt(totalMaterialCost)}원</b> · 결합부속품 <b>${fmt(totalHardwareCost)}원</b> · 설비임률배분 <b>${fmt(allocatedImryul)}원</b> ` +
       `= 원가 합계 <b>${fmt(totalCost)}원</b> · 마진 <b>${fmt(totalMargin)}원</b>(판매가 대비 <b>${effMarginPct.toFixed(1)}%</b>) → 판매가 <b>${fmt(totalPrice)}원</b>`;
+
+    lastCalc = { perSetCost: perSet, perSetPrice, totalCost, totalPrice, setCount };
+    updateGrandTotal();
+  }
+
+  function renderSaved() {
+    const body = $('savedBody');
+    const table = $('savedTable');
+    body.innerHTML = '';
+    table.style.display = savedFurniture.length ? '' : 'none';
+    savedFurniture.forEach(f => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${f.name}</td>
+        <td class="num">${f.setCount}</td>
+        <td class="num">${fmt(f.perSetPrice)}원</td>
+        <td class="num">${fmt(f.totalPrice)}원</td>
+        <td><button class="del-btn" data-saveddel="${f.id}" aria-label="삭제">×</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('[data-saveddel]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.dataset.saveddel, 10);
+        savedFurniture = savedFurniture.filter(f => f.id !== id);
+        renderSaved();
+        updateGrandTotal();
+        saveSavedFurniture();
+      });
+    });
+    updateGrandTotal();
+  }
+
+  function updateGrandTotal() {
+    const savedCostSum = savedFurniture.reduce((s, f) => s + f.totalCost, 0);
+    const savedPriceSum = savedFurniture.reduce((s, f) => s + f.totalPrice, 0);
+    const grandCost = savedCostSum + lastCalc.totalCost;
+    const grandPrice = savedPriceSum + lastCalc.totalPrice;
+    const label = savedFurniture.length
+      ? `저장된 가구 ${savedFurniture.length}개 판매가 합계 <b>${fmt(savedPriceSum)}원</b> + 지금 만들고 있는 가구 <b>${fmt(lastCalc.totalPrice)}원</b> `
+      : `아직 저장된 가구가 없습니다 · 지금 만들고 있는 가구 <b>${fmt(lastCalc.totalPrice)}원</b> `;
+    $('savedGrandTotal').innerHTML =
+      label + `→ 전체 합계 — 원가 <b>${fmt(grandCost)}원</b> · 판매가 <b style="font-size:15px;">${fmt(grandPrice)}원</b>`;
   }
 
   // preset length buttons -> add item
@@ -818,6 +896,33 @@
     $('customHwName').value = '';
     $('customHwPrice').value = '';
     $('customHwQty').value = 1;
+    renderHardware();
+    calc();
+    saveState();
+  });
+
+  $('saveFurnitureBtn').addEventListener('click', () => {
+    if (!items.length) return;
+    const name = ($('saveName').value || '').trim() || `가구 ${savedFurniture.length + 1}`;
+    savedFurniture.push({
+      id: nextSavedId++,
+      name,
+      setCount: lastCalc.setCount,
+      perSetPrice: lastCalc.perSetPrice,
+      totalCost: lastCalc.totalCost,
+      totalPrice: lastCalc.totalPrice,
+    });
+    saveSavedFurniture();
+    renderSaved();
+
+    // clear the current furniture's inputs so the next one can be entered
+    items = DEFAULT_ITEMS.map(i => ({ ...i }));
+    nextId = 4;
+    hardwareItems = DEFAULT_HARDWARE.map(h => ({ ...h }));
+    nextHwId = 3;
+    $('setCount').value = 1;
+    $('saveName').value = '';
+    renderItems();
     renderHardware();
     calc();
     saveState();
@@ -877,8 +982,10 @@
 
   // init
   loadState();
+  loadSavedFurniture();
   renderItems();
   renderHardware();
+  renderSaved();
   calc();
 })();
 </script>
