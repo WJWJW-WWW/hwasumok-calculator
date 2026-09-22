@@ -248,8 +248,14 @@
       </div>
 
       <div class="card">
-        <h2>단가 설정</h2>
-        <p class="sub">원자재 배합비·kg당 단가. 기본값은 자재 계산기와 동일합니다.</p>
+        <h2>프레임(ㄷ찬넬) 단가</h2>
+        <p class="sub">기둥·가로대·깊이연결대는 사입 자재(ㄷ찬넬)로 만들 예정이라, 배합비 계산 없이 m당 가격을 직접 곱해서 계산합니다. 아직 확정 견적 전이라 예시값입니다.</p>
+        <div class="field-row"><label>ㄷ찬넬 1m당 가격</label><div><input type="number" id="channelPricePerM" value="13500" step="100"><span class="unit">원/m</span></div></div>
+      </div>
+
+      <div class="card">
+        <h2>판넬(멸균팩 합판) 단가 설정</h2>
+        <p class="sub">판넬은 자사 제조 원자재 배합비·kg당 단가로 계산합니다. 기본값은 자재 계산기와 동일합니다.</p>
         <div class="field-row"><label>목분 배합비</label><div><input type="number" id="r_wood" value="50" step="0.1"><span class="unit">%</span></div></div>
         <div class="field-row"><label>멸균팩 배합비</label><div><input type="number" id="r_mel" value="20" step="0.1"><span class="unit">%</span></div></div>
         <div class="field-row"><label>폐플라스틱 배합비</label><div><input type="number" id="r_plastic" value="28" step="0.1"><span class="unit">%</span></div></div>
@@ -264,8 +270,8 @@
         <div class="field-row"><label>첨가제</label><div><input type="number" id="p_add" value="3400"><span class="unit">원/kg</span></div></div>
         <div class="field-row"><label>콤파운드 가공비</label><div><input type="number" id="p_compound" value="450"><span class="unit">원/kg</span></div></div>
         <div class="field-row"><label>제품 생산비</label><div><input type="number" id="p_prod" value="400"><span class="unit">원/kg</span></div></div>
-        <div class="field-row"><label>1m 기준 중량</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
-        <p class="sub" style="margin:8px 0 0;">두께 20mm × 폭 100mm(고정) 기준. 판넬도 같은 단면(폭 10cm 고정) 자재를 표준 길이로 잘라 쓰므로 같은 중량 기준을 씁니다.</p>
+        <div class="field-row"><label>1m 기준 중량(판넬)</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+        <p class="sub" style="margin:8px 0 0;">두께 20mm × 폭 100mm(고정) 기준. 판넬을 표준 길이로 잘라 쓸 때의 중량 계산에 쓰입니다.</p>
       </div>
 
       <div class="card">
@@ -379,17 +385,17 @@
           <div><div class="label">세트당 원가</div><div class="val" id="perSetCost">–</div></div>
           <div><div class="label">세트당 마진</div><div class="val" id="perSetMargin">–</div></div>
           <div><div class="label">결합부(조인트) 개수</div><div class="val" id="jointCount">–</div></div>
-          <div><div class="label">총 투입 원료</div><div class="val" id="totalWeight">–</div></div>
+          <div><div class="label">총 투입 원료(판넬)</div><div class="val" id="totalWeight">–</div></div>
           <div><div class="label">배분된 설비임률</div><div class="val" id="allocImryul">–</div></div>
         </div>
       </div>
       <div class="breakdown" id="costBreakdown" style="margin: 10px 2px 0;"></div>
 
       <div class="card" style="margin-top:16px;">
-        <h2>자동 산출 자재 명세(BOM)</h2>
-        <p class="sub">그리드에서 자동으로 뽑아낸 프로파일 부재입니다. 직접 편집이 필요하면 "자재 직접입력 원가 계산기"를 이용하세요.</p>
+        <h2>프레임 명세 (ㄷ찬넬)</h2>
+        <p class="sub">그리드에서 자동으로 뽑아낸 기둥·가로대·깊이연결대입니다. ㄷ찬넬 1m당 가격으로 계산합니다.</p>
         <table class="items">
-          <thead><tr><th>길이(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">중량(kg)</th><th style="text-align:right;">재료+가공비</th></tr></thead>
+          <thead><tr><th>길이(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">가격</th></tr></thead>
           <tbody id="bomBody"></tbody>
         </table>
       </div>
@@ -435,6 +441,7 @@
     p_wood: 300, p_mel: 150, p_plastic: 700, p_add: 3400,
     p_compound: 450, p_prod: 400,
     wPerM: 2.72,
+    channelPricePerM: 13500,
     imryul: 2000000,
     setCount: 1,
     batchTotal: 1000,
@@ -449,7 +456,7 @@
   ];
   const FACE_LABELS = { front: '전면', back: '후면', left: '좌측면', right: '우측면', top: '상판', bottom: '하판' };
 
-  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
+  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM','channelPricePerM'];
 
   let cols = [60, 60, 60];   // widths, cm, left->right
   let rows = [35, 35, 35];   // heights, cm, bottom->top
@@ -867,20 +874,21 @@
     const panelBom = panelBomFromPanels(panels);
     const kgRate = getKgRate();
     const wPerCm = parseFloat($('wPerM').value || 0) / 100;
+    const channelPricePerCm = (parseFloat($('channelPricePerM').value) || 0) / 100;
     const setCount = Math.max(1, parseInt($('setCount').value) || 1);
 
     const bomBody = $('bomBody');
     bomBody.innerHTML = '';
-    let frameWeight = 0;
+    let frameCostPerSet = 0;
     bom.forEach(item => {
-      const w = item.len * wPerCm * item.qty;
-      frameWeight += w;
+      const cost = item.len * channelPricePerCm * item.qty;
+      frameCostPerSet += cost;
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${fmt2(item.len)}</td><td class="num">${item.qty}</td><td class="num">${fmt2(w)}</td><td class="num">${fmt(w * kgRate)}원</td>`;
+      tr.innerHTML = `<td>${fmt2(item.len)}</td><td class="num">${item.qty}</td><td class="num">${fmt(cost)}원</td>`;
       bomBody.appendChild(tr);
     });
     if (!bom.length) {
-      bomBody.innerHTML = '<tr><td colspan="4" style="color:var(--ink-soft);">활성화된 모듈이 없습니다. 그리드에서 칸을 클릭해 모듈을 배치하세요.</td></tr>';
+      bomBody.innerHTML = '<tr><td colspan="3" style="color:var(--ink-soft);">활성화된 모듈이 없습니다. 그리드에서 칸을 클릭해 모듈을 배치하세요.</td></tr>';
     }
 
     const panelBomBody = $('panelBomBody');
@@ -901,28 +909,30 @@
       ? `판넬면 ${panels.length}개 → 표준 판넬(폭10cm) ${panelPieceCount}장 · ` + panelBom.map(p => `${p.len}cm×${p.qty}`).join(', ')
       : '아직 붙은 판넬이 없습니다.';
 
-    const totalWeight = (frameWeight + panelWeight) * setCount;
-    const totalMaterialCost = totalWeight * kgRate;
-    const frameCostPerSet = frameWeight * kgRate;
+    // ㄷ찬넬은 사입 자재라 설비임률(압출·컴파운딩 가동비) 배분 대상이 아님 — 판넬(자사 제조 자재) 중량만 배분 기준으로 씀
     const panelCostPerSet = panelWeight * kgRate;
+    const totalFrameCost = frameCostPerSet * setCount;
+    const totalPanelCost = panelCostPerSet * setCount;
+    const totalMaterialCost = totalFrameCost + totalPanelCost;
+    const totalPanelWeight = panelWeight * setCount;
 
     const hardwareCostPerSet = hardwareItems.reduce((sum, hw) => sum + (parseFloat(hw.price) || 0) * (parseFloat(hw.qty) || 0), 0) * frame.jointCount;
     const totalHardwareCost = hardwareCostPerSet * setCount;
 
     const imryul = parseFloat($('imryulCustom').value) || 0;
-    let batchWeight = totalWeight;
+    let batchWeight = totalPanelWeight;
     const warnEl = $('batchWarn');
     warnEl.style.display = 'none';
     if (batchMode === 'shared') {
       const bt = parseFloat($('batchTotal').value) || 0;
       batchWeight = bt;
-      if (bt < totalWeight) {
+      if (bt < totalPanelWeight) {
         warnEl.style.display = 'block';
-        warnEl.textContent = `입력하신 배치 총량(${fmt2(bt)}kg)이 이 주문의 총 소요량(${fmt2(totalWeight)}kg)보다 적습니다. 배치 총량을 늘려주세요.`;
-        batchWeight = totalWeight;
+        warnEl.textContent = `입력하신 배치 총량(${fmt2(bt)}kg)이 이 주문의 총 판넬 소요량(${fmt2(totalPanelWeight)}kg)보다 적습니다. 배치 총량을 늘려주세요.`;
+        batchWeight = totalPanelWeight;
       }
     }
-    const allocatedImryul = batchWeight > 0 ? imryul * (totalWeight / batchWeight) : 0;
+    const allocatedImryul = batchWeight > 0 ? imryul * (totalPanelWeight / batchWeight) : 0;
     const totalCost = totalMaterialCost + totalHardwareCost + allocatedImryul;
     const perSet = totalCost / setCount;
 
@@ -943,7 +953,7 @@
     $('perSetPrice').textContent = fmt(perSetPrice) + '원';
     $('perSetMargin').textContent = fmt(perSetMargin) + '원';
     $('jointCount').textContent = frame.jointCount + '개';
-    $('totalWeight').textContent = fmt2(totalWeight) + 'kg';
+    $('totalWeight').textContent = fmt2(totalPanelWeight) + 'kg';
     $('allocImryul').textContent = fmt(allocatedImryul) + '원';
 
     $('costBreakdown').innerHTML =
