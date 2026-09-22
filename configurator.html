@@ -185,6 +185,20 @@
   .grid-cell:hover { outline: 2px solid var(--clay); outline-offset: -2px; }
   .grid-hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
 
+  /* --- panel controls --- */
+  .panel-row-select, .panel-face-select {
+    display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; margin-top: 4px;
+  }
+  .panel-face-select { margin-top: 10px; }
+  .panel-row-select label, .panel-face-select label {
+    display: flex; align-items: center; gap: 5px; background: var(--paper-dark);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; cursor: pointer; user-select: none;
+  }
+  .panel-row-select label:has(input:checked), .panel-face-select label:has(input:checked) {
+    background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700;
+  }
+  .panel-row-select input, .panel-face-select input { width: auto; margin: 0; }
+
   /* --- 3d canvas --- */
   .canvas-wrap {
     position: relative; width: 100%; aspect-ratio: 16/10; background: var(--paper-dark);
@@ -250,7 +264,9 @@
         <div class="field-row"><label>첨가제</label><div><input type="number" id="p_add" value="3400"><span class="unit">원/kg</span></div></div>
         <div class="field-row"><label>콤파운드 가공비</label><div><input type="number" id="p_compound" value="450"><span class="unit">원/kg</span></div></div>
         <div class="field-row"><label>제품 생산비</label><div><input type="number" id="p_prod" value="400"><span class="unit">원/kg</span></div></div>
-        <div class="field-row"><label>1m 기준 중량</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+        <div class="field-row"><label>1m 기준 중량(프로파일)</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+        <div class="field-row"><label>1㎡ 기준 중량(판넬)</label><div><input type="number" id="wPerM2" value="5" step="0.1"><span class="unit">kg/㎡</span></div></div>
+        <p class="sub" style="margin:8px 0 0;">판넬 중량은 예시값입니다. 실제 사용하는 판넬 두께·재질에 맞게 수정하세요.</p>
       </div>
 
       <div class="card">
@@ -315,6 +331,29 @@
       </div>
 
       <div class="card">
+        <h2>판넬 설정</h2>
+        <p class="sub">
+          행과 면을 선택하고 "붙이기"/"떼기"를 눌러 적용하세요. 여러 번 눌러서 조합할 수 있습니다.<br>
+          예) 모든 면 → 전체 행 + 모든 면 체크 후 붙이기 · 옆면만 → 전체 행 + 좌·우 체크 후 붙이기 ·
+          첫 번째 줄만 → 1행 + 원하는 면 체크 후 붙이기 · 첫 줄 앞면만 빼기 → (모든 면을 붙인 뒤) 1행 + 전면 체크 후 떼기.
+        </p>
+        <div class="panel-row-select" id="panelRowSelect"></div>
+        <div class="panel-face-select" id="panelFaceSelect">
+          <label><input type="checkbox" value="front">전면(앞)</label>
+          <label><input type="checkbox" value="back">후면(뒤)</label>
+          <label><input type="checkbox" value="left">좌측면</label>
+          <label><input type="checkbox" value="right">우측면</label>
+          <label><input type="checkbox" value="top">상판</label>
+          <label><input type="checkbox" value="bottom">하판</label>
+        </div>
+        <div class="add-row">
+          <button class="add-btn" id="applyPanelBtn">선택한 칸에 판넬 붙이기</button>
+          <button class="apply-btn" id="removePanelBtn">선택한 칸에서 판넬 떼기</button>
+        </div>
+        <div class="grid-hint" id="panelSummary"></div>
+      </div>
+
+      <div class="card">
         <h2>3D 미리보기</h2>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="canvas-hint">드래그: 회전 · 휠: 확대/축소</div>
@@ -346,6 +385,15 @@
       </div>
 
       <div class="card" style="margin-top:16px;">
+        <h2>판넬 명세</h2>
+        <p class="sub">"판넬 설정"에서 붙인 면들의 크기별 개수입니다. 판넬도 같은 원자재 배합비 단가로 계산되며, 중량만 1㎡ 기준값으로 환산합니다.</p>
+        <table class="items">
+          <thead><tr><th>크기(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">면적(㎡)</th><th style="text-align:right;">중량(kg)</th><th style="text-align:right;">재료+가공비</th></tr></thead>
+          <tbody id="panelBomBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
         <h2>이 모듈러 가구 저장 → 계산기로 보내기</h2>
         <p class="sub">이름을 넣고 저장하면, "자재 직접입력 원가 계산기" 페이지의 "여러 가구 합계" 목록에 이 프레임의 자재(BOM)·결합부속품·원가·판매가가 함께 저장됩니다. 그리드는 계속 이어서 수정할 수 있도록 비워지지 않습니다.</p>
         <div class="add-row" style="margin-top:0;">
@@ -373,6 +421,7 @@
     p_wood: 300, p_mel: 150, p_plastic: 700, p_add: 3400,
     p_compound: 450, p_prod: 400,
     wPerM: 2.72,
+    wPerM2: 5,
     imryul: 2000000,
     setCount: 1,
     batchTotal: 1000,
@@ -385,23 +434,26 @@
     { id: 1, name: 'ㄷ찬넬(연결 브라켓)', price: 800, qty: 1 },
     { id: 2, name: '피스(나사)', price: 80, qty: 4 },
   ];
+  const FACE_LABELS = { front: '전면', back: '후면', left: '좌측면', right: '우측면', top: '상판', bottom: '하판' };
 
-  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
+  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM','wPerM2'];
 
   let cols = [60, 60, 60];   // widths, cm, left->right
   let rows = [35, 35, 35];   // heights, cm, bottom->top
   let activeCells = new Set(); // "r,c"
+  let panelFaces = new Map(); // "r,c" -> Set of face codes: front/back/left/right/top/bottom
   let hardwareItems = DEFAULT_HARDWARE.map(h => ({ ...h }));
   let nextHwId = 3;
   let batchMode = 'own';
   let markupMode = 'markup';
-  let lastCalc = { setCount: 1, perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, items: [], hardwareSummary: [] };
+  let lastCalc = { setCount: 1, perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, items: [], hardwareSummary: [], panels: [] };
 
   function fillAllCells() {
     activeCells = new Set();
     for (let r = 0; r < rows.length; r++) {
       for (let c = 0; c < cols.length; c++) activeCells.add(r + ',' + c);
     }
+    panelFaces = new Map();
   }
   fillAllCells();
 
@@ -420,6 +472,7 @@
       state.rowsInput = $('rowsInput').value;
       state.gridDepth = $('gridDepth').value;
       state.activeCells = [...activeCells];
+      state.panelFaces = [...panelFaces.entries()].map(([k, faces]) => [k, [...faces]]);
       state.hardwareItems = hardwareItems;
       state.batchMode = batchMode;
       state.markupMode = markupMode;
@@ -446,6 +499,7 @@
       if (!rows.length) rows = [35, 35, 35];
       if (state.activeCells && state.activeCells.length) {
         activeCells = new Set(state.activeCells);
+        panelFaces = new Map((state.panelFaces || []).map(([k, faces]) => [k, new Set(faces)]));
       } else {
         fillAllCells();
       }
@@ -491,6 +545,7 @@
     $('setCount').value = 1;
     $('batchTotal').value = 1000;
     renderGridEditor();
+    renderPanelRowSelect();
     renderHardware();
     rebuildScene();
     calc();
@@ -543,7 +598,12 @@
         cell.dataset.key = key;
         cell.title = `${c + 1}열 × ${rVis + 1}행`;
         cell.addEventListener('click', () => {
-          if (activeCells.has(key)) activeCells.delete(key); else activeCells.add(key);
+          if (activeCells.has(key)) {
+            activeCells.delete(key);
+            panelFaces.delete(key);
+          } else {
+            activeCells.add(key);
+          }
           cell.classList.toggle('off');
           rebuildScene(); calc(); saveState();
         });
@@ -551,6 +611,23 @@
       }
     }
     $('gridHint').textContent = `${cols.length}열 × ${rows.length}행 · 활성 모듈 ${activeCells.size}개`;
+  }
+
+  // ---------- panel row selector ----------
+  function renderPanelRowSelect() {
+    const wrap = $('panelRowSelect');
+    wrap.innerHTML = '';
+    const allLabel = document.createElement('label');
+    allLabel.innerHTML = `<input type="checkbox" id="panelRowAll">전체 행`;
+    wrap.appendChild(allLabel);
+    for (let r = 0; r < rows.length; r++) {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" class="panel-row-cb" value="${r}">${r + 1}행`;
+      wrap.appendChild(label);
+    }
+    $('panelRowAll').addEventListener('change', (e) => {
+      wrap.querySelectorAll('.panel-row-cb').forEach(cb => { cb.checked = e.target.checked; });
+    });
   }
 
   // ---------- BOM generation from grid ----------
@@ -608,6 +685,64 @@
     return [...lenCounts.entries()].sort((a, b) => a[0] - b[0]).map(([len, qty], i) => ({ id: i + 1, len, qty }));
   }
 
+  // ---------- panel geometry from grid + panelFaces ----------
+  function cellActive(r, c) { return activeCells.has(r + ',' + c); }
+  function cellHasFace(r, c, face) {
+    const set = panelFaces.get(r + ',' + c);
+    return !!set && set.has(face);
+  }
+
+  function computePanels(frame) {
+    const { colX, rowY, depth } = frame;
+    const panels = [];
+
+    // x-facing panels (left/right dividers) at column boundaries
+    for (let cb = 0; cb <= cols.length; cb++) {
+      for (let r = 0; r < rows.length; r++) {
+        const wantFromLeft = cellActive(r, cb - 1) && cellHasFace(r, cb - 1, 'right');
+        const wantFromRight = cellActive(r, cb) && cellHasFace(r, cb, 'left');
+        if (wantFromLeft || wantFromRight) {
+          panels.push({ orient: 'x', pos: colX[cb], y0: rowY[r], y1: rowY[r + 1], z0: 0, z1: depth, w: rows[r], h: depth });
+        }
+      }
+    }
+    // y-facing panels (top/bottom) at row boundaries
+    for (let rb = 0; rb <= rows.length; rb++) {
+      for (let c = 0; c < cols.length; c++) {
+        const wantFromBelow = cellActive(rb - 1, c) && cellHasFace(rb - 1, c, 'top');
+        const wantFromAbove = cellActive(rb, c) && cellHasFace(rb, c, 'bottom');
+        if (wantFromBelow || wantFromAbove) {
+          panels.push({ orient: 'y', pos: rowY[rb], x0: colX[c], x1: colX[c + 1], z0: 0, z1: depth, w: cols[c], h: depth });
+        }
+      }
+    }
+    // z-facing panels (front/back) per active cell
+    activeCells.forEach(key => {
+      const [r, c] = key.split(',').map(Number);
+      if (cellHasFace(r, c, 'front')) {
+        panels.push({ orient: 'z', pos: 0, x0: colX[c], x1: colX[c + 1], y0: rowY[r], y1: rowY[r + 1], w: cols[c], h: rows[r] });
+      }
+      if (cellHasFace(r, c, 'back')) {
+        panels.push({ orient: 'z', pos: depth, x0: colX[c], x1: colX[c + 1], y0: rowY[r], y1: rowY[r + 1], w: cols[c], h: rows[r] });
+      }
+    });
+
+    return panels;
+  }
+
+  function panelBomFromPanels(panels) {
+    const sizeCounts = new Map();
+    panels.forEach(p => {
+      const w = Math.round(p.w * 10) / 10, h = Math.round(p.h * 10) / 10;
+      if (w <= 0 || h <= 0) return;
+      const key = `${w}x${h}`;
+      const cur = sizeCounts.get(key) || { w, h, qty: 0 };
+      cur.qty += 1;
+      sizeCounts.set(key, cur);
+    });
+    return [...sizeCounts.values()].sort((a, b) => (b.w * b.h) - (a.w * a.h));
+  }
+
   // ---------- pricing (shared math with the material calculator) ----------
   function getKgRate() {
     const rw = parseFloat($('r_wood').value) || 0;
@@ -641,8 +776,11 @@
   function calc() {
     const frame = computeFrame();
     const bom = bomFromFrame(frame);
+    const panels = computePanels(frame);
+    const panelBom = panelBomFromPanels(panels);
     const kgRate = getKgRate();
     const wPerCm = parseFloat($('wPerM').value || 0) / 100;
+    const wPerM2 = parseFloat($('wPerM2').value) || 0;
     const setCount = Math.max(1, parseInt($('setCount').value) || 1);
 
     const bomBody = $('bomBody');
@@ -659,7 +797,26 @@
       bomBody.innerHTML = '<tr><td colspan="4" style="color:var(--ink-soft);">활성화된 모듈이 없습니다. 그리드에서 칸을 클릭해 모듈을 배치하세요.</td></tr>';
     }
 
-    const totalWeight = setWeight * setCount;
+    const panelBomBody = $('panelBomBody');
+    panelBomBody.innerHTML = '';
+    let setPanelWeight = 0;
+    let setPanelArea = 0;
+    panelBom.forEach(p => {
+      const areaM2 = (p.w * p.h / 10000) * p.qty;
+      const w = areaM2 * wPerM2;
+      setPanelArea += areaM2;
+      setPanelWeight += w;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${fmt2(p.w)}×${fmt2(p.h)}</td><td class="num">${p.qty}</td><td class="num">${fmt2(areaM2)}</td><td class="num">${fmt2(w)}</td><td class="num">${fmt(w * kgRate)}원</td>`;
+      panelBomBody.appendChild(tr);
+    });
+    panelBomBody.innerHTML = panelBom.length ? panelBomBody.innerHTML :
+      '<tr><td colspan="5" style="color:var(--ink-soft);">붙은 판넬이 없습니다. 위 "판넬 설정"에서 행·면을 골라 붙이세요.</td></tr>';
+    $('panelSummary').textContent = panelBom.length
+      ? `판넬 ${panels.length}매 · 면적 ${fmt2(setPanelArea)}㎡`
+      : '아직 붙은 판넬이 없습니다.';
+
+    const totalWeight = (setWeight + setPanelWeight) * setCount;
     const totalMaterialCost = totalWeight * kgRate;
 
     const hardwareCostPerSet = hardwareItems.reduce((sum, hw) => sum + (parseFloat(hw.price) || 0) * (parseFloat(hw.qty) || 0), 0) * frame.jointCount;
@@ -703,12 +860,13 @@
     $('allocImryul').textContent = fmt(allocatedImryul) + '원';
 
     $('costBreakdown').innerHTML =
-      `원가 구성(세트 1건) — 재료비 <b>${fmt(totalMaterialCost / setCount)}원</b> · 결합부속품 <b>${fmt(totalHardwareCost / setCount)}원</b>(조인트 ${frame.jointCount}개) · 설비임률배분 <b>${fmt(allocatedImryul / setCount)}원</b> ` +
+      `원가 구성(세트 1건) — 재료비(프로파일) <b>${fmt(setWeight * kgRate)}원</b> · 재료비(판넬) <b>${fmt(setPanelWeight * kgRate)}원</b> · 결합부속품 <b>${fmt(totalHardwareCost / setCount)}원</b>(조인트 ${frame.jointCount}개) · 설비임률배분 <b>${fmt(allocatedImryul / setCount)}원</b> ` +
       `= 원가 <b>${fmt(perSet)}원</b> · 마진 <b>${fmt(perSetMargin)}원</b>(판매가 대비 <b>${effMarginPct.toFixed(1)}%</b>) → 판매가 <b>${fmt(perSetPrice)}원</b>`;
 
     lastCalc = {
       setCount, perSetCost: perSet, perSetPrice, totalCost, totalPrice,
       items: bom.map(i => ({ len: i.len, qty: i.qty })),
+      panels: panelBom.map(p => ({ w: p.w, h: p.h, qty: p.qty })),
       hardwareSummary: hardwareItems.map(h => ({ name: h.name, qty: h.qty * frame.jointCount })),
     };
   }
@@ -718,8 +876,9 @@
   let renderer, scene, camera, canvasWrap, barGroup;
   let cam = { theta: Math.PI / 4, phi: Math.PI / 3, radius: 260, target: { x: 0, y: 0, z: 0 } };
   let dragging = false, lastX = 0, lastY = 0;
-  let matPost, matRail, matDepth;
+  let matPost, matRail, matDepth, matPanel;
   const BAR_THICK = 3; // cm, visualization-only cross-section
+  const PANEL_THICK = 1.5; // cm, visualization-only panel thickness
 
   function initScene() {
     canvasWrap = $('canvasWrap');
@@ -731,6 +890,7 @@
     matPost = new THREE.MeshStandardMaterial({ color: 0xA9713F, roughness: 0.75 });
     matRail = new THREE.MeshStandardMaterial({ color: 0x8A6A4A, roughness: 0.75 });
     matDepth = new THREE.MeshStandardMaterial({ color: 0x6F5636, roughness: 0.8 });
+    matPanel = new THREE.MeshStandardMaterial({ color: 0xD9C7A3, roughness: 0.85, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xE7DFCC);
 
@@ -841,6 +1001,16 @@
       addBox(BAR_THICK, BAR_THICK, b.len, x, y, z, matDepth);
     });
 
+    computePanels(frame).forEach(p => {
+      if (p.orient === 'x') {
+        addBox(PANEL_THICK, p.y1 - p.y0, p.z1 - p.z0, p.pos + ox, (p.y0 + p.y1) / 2 + oy, (p.z0 + p.z1) / 2 + oz, matPanel);
+      } else if (p.orient === 'y') {
+        addBox(p.x1 - p.x0, PANEL_THICK, p.z1 - p.z0, (p.x0 + p.x1) / 2 + ox, p.pos + oy, (p.z0 + p.z1) / 2 + oz, matPanel);
+      } else {
+        addBox(p.x1 - p.x0, p.y1 - p.y0, PANEL_THICK, (p.x0 + p.x1) / 2 + ox, (p.y0 + p.y1) / 2 + oy, p.pos + oz, matPanel);
+      }
+    });
+
     cam.target.set(0, 0, 0);
     cam.radius = Math.max(120, Math.sqrt(totalW * totalW + totalH * totalH + totalD * totalD) * 1.15);
     updateCamera();
@@ -854,9 +1024,48 @@
     cols = newCols; rows = newRows;
     fillAllCells();
     renderGridEditor();
+    renderPanelRowSelect();
     rebuildScene();
     calc();
     saveState();
+  });
+
+  // ---------- panel apply/remove ----------
+  function getSelectedPanelRows() {
+    return [...document.querySelectorAll('.panel-row-cb:checked')].map(cb => parseInt(cb.value, 10));
+  }
+  function getSelectedPanelFaces() {
+    return [...document.querySelectorAll('#panelFaceSelect input:checked')].map(cb => cb.value);
+  }
+
+  $('applyPanelBtn').addEventListener('click', () => {
+    const rowsSel = getSelectedPanelRows();
+    const faces = getSelectedPanelFaces();
+    if (!rowsSel.length || !faces.length) return;
+    rowsSel.forEach(r => {
+      for (let c = 0; c < cols.length; c++) {
+        if (!cellActive(r, c)) continue;
+        const key = r + ',' + c;
+        if (!panelFaces.has(key)) panelFaces.set(key, new Set());
+        faces.forEach(f => panelFaces.get(key).add(f));
+      }
+    });
+    rebuildScene(); calc(); saveState();
+  });
+
+  $('removePanelBtn').addEventListener('click', () => {
+    const rowsSel = getSelectedPanelRows();
+    const faces = getSelectedPanelFaces();
+    if (!rowsSel.length || !faces.length) return;
+    rowsSel.forEach(r => {
+      for (let c = 0; c < cols.length; c++) {
+        const key = r + ',' + c;
+        const set = panelFaces.get(key);
+        if (!set) continue;
+        faces.forEach(f => set.delete(f));
+      }
+    });
+    rebuildScene(); calc(); saveState();
   });
 
   $('addHwBtn').addEventListener('click', () => {
@@ -896,6 +1105,7 @@
       totalCost: lastCalc.totalCost,
       totalPrice: lastCalc.totalPrice,
       items: lastCalc.items,
+      panels: lastCalc.panels,
       hardwareSummary: lastCalc.hardwareSummary,
     });
     $('saveName').value = '';
@@ -949,6 +1159,7 @@
   // ---------- init ----------
   loadState();
   renderGridEditor();
+  renderPanelRowSelect();
   renderHardware();
   initScene();
   rebuildScene();
