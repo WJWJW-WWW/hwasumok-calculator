@@ -832,7 +832,7 @@
     savedFurniture.forEach(f => {
       const tr = document.createElement('tr');
       const barText = (f.items || []).map(i => `${fmt2(i.len)}cm×${i.qty}`).join(', ');
-      const panelText = (f.panels || []).map(p => `판넬${fmt2(p.w)}×${fmt2(p.h)}×${p.qty}`).join(', ');
+      const panelText = (f.panels || []).map(p => `판넬${p.len}cm×${p.qty}`).join(', ');
       const bomText = [barText, panelText].filter(Boolean).join(' · ') || '–';
       const hwText = (f.hardwareSummary || []).map(h => `${h.name}×${fmt2(h.qty)}`).join(', ');
       const sourceTag = f.source === 'configurator' ? ' <span style="color:var(--moss); font-size:11px;">[3D]</span>' : '';
