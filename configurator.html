@@ -131,6 +131,10 @@
   table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
   table.items input[type="number"] { width: 76px; }
   table.items input[type="text"] { width: 120px; text-align: left; }
+  .hw-table-wrap { overflow-x: auto; }
+  #hardwareBody input[type="text"] { width: 80px; }
+  #hardwareBody input[type="number"] { width: 56px; }
+  #hardwareBody td { padding: 6px 3px; }
   table.items .del-btn {
     background: none; border: none; color: var(--error); cursor: pointer; font-size: 16px; line-height: 1; padding: 4px;
   }
@@ -252,10 +256,12 @@
       <div class="card">
         <h2>결합부속품 (조인트 1개당)</h2>
         <p class="sub">프레임 부재가 만나는 결합부(조인트) 1개소에 들어가는 하드웨어입니다. 총 하드웨어 수량 = 조인트 개수 × 조인트당 수량으로 자동 계산됩니다.</p>
-        <table class="items">
-          <thead><tr><th>품목명</th><th style="text-align:right;">단가(원)</th><th style="text-align:right;">조인트당 수량</th><th></th></tr></thead>
-          <tbody id="hardwareBody"></tbody>
-        </table>
+        <div class="hw-table-wrap">
+          <table class="items">
+            <thead><tr><th>품목명</th><th style="text-align:right;">단가</th><th style="text-align:right;">수량</th><th></th></tr></thead>
+            <tbody id="hardwareBody"></tbody>
+          </table>
+        </div>
         <div class="add-row">
           <input type="text" id="customHwName" placeholder="품목명" style="width:120px;">
           <input type="number" id="customHwPrice" placeholder="단가(원)" min="0">
