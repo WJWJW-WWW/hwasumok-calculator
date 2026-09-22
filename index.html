@@ -831,7 +831,9 @@
     table.style.display = savedFurniture.length ? '' : 'none';
     savedFurniture.forEach(f => {
       const tr = document.createElement('tr');
-      const bomText = (f.items || []).map(i => `${fmt2(i.len)}cm×${i.qty}`).join(', ') || '–';
+      const barText = (f.items || []).map(i => `${fmt2(i.len)}cm×${i.qty}`).join(', ');
+      const panelText = (f.panels || []).map(p => `판넬${p.len}cm×${p.qty}`).join(', ');
+      const bomText = [barText, panelText].filter(Boolean).join(' · ') || '–';
       const hwText = (f.hardwareSummary || []).map(h => `${h.name}×${fmt2(h.qty)}`).join(', ');
       const sourceTag = f.source === 'configurator' ? ' <span style="color:var(--moss); font-size:11px;">[3D]</span>' : '';
       tr.innerHTML = `

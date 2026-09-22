@@ -160,6 +160,7 @@
   .toggle-btn.active { background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700; }
 
   .imryul-presets { display: flex; gap: 8px; margin-bottom: 10px; }
+  .preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
   .preset-btn {
     background: var(--paper-dark); border: 1px solid var(--line); color: var(--ink); border-radius: 999px;
     padding: 6px 14px; font-size: 12.5px; cursor: pointer; font-family: inherit;
@@ -184,6 +185,20 @@
   .grid-cell.off { background: var(--paper-dark); border-color: var(--line); }
   .grid-cell:hover { outline: 2px solid var(--clay); outline-offset: -2px; }
   .grid-hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+
+  /* --- panel controls --- */
+  .panel-row-select, .panel-face-select {
+    display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; margin-top: 4px;
+  }
+  .panel-face-select { margin-top: 10px; }
+  .panel-row-select label, .panel-face-select label {
+    display: flex; align-items: center; gap: 5px; background: var(--paper-dark);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; cursor: pointer; user-select: none;
+  }
+  .panel-row-select label:has(input:checked), .panel-face-select label:has(input:checked) {
+    background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700;
+  }
+  .panel-row-select input, .panel-face-select input { width: auto; margin: 0; }
 
   /* --- 3d canvas --- */
   .canvas-wrap {
@@ -220,22 +235,35 @@
     <div>
       <div class="card">
         <h2>그리드(프레임) 구성</h2>
-        <p class="sub">쉼표로 구분해 각 칸의 폭/높이를 입력하세요. 예: 60,60,60 → 3칸.</p>
+        <p class="sub">표준 규격(25cm 단위) 버튼으로 칸을 추가하세요. 직접 쉼표로 입력해 수정할 수도 있습니다. 예: 60,60,60 → 3칸.</p>
+
+        <label style="font-size:13.5px;">열 폭(cm, 왼쪽→오른쪽)</label>
+        <div class="preset-row" id="colPresetRow" style="margin:6px 0 8px;"></div>
         <div class="field-row" style="flex-direction:column; align-items:stretch; gap:4px;">
-          <label>열 폭(cm, 왼쪽→오른쪽)</label>
           <input type="text" id="colsInput" class="wide" value="60,60,60">
         </div>
+        <button class="reset-btn" id="removeLastColBtn" style="margin-top:6px;">마지막 열 삭제</button>
+
+        <label style="font-size:13.5px; margin-top:14px; display:block;">행 높이(cm, 아래→위)</label>
+        <div class="preset-row" id="rowPresetRow" style="margin:6px 0 8px;"></div>
         <div class="field-row" style="flex-direction:column; align-items:stretch; gap:4px;">
-          <label>행 높이(cm, 아래→위)</label>
           <input type="text" id="rowsInput" class="wide" value="35,35,35">
         </div>
-        <div class="field-row"><label>깊이</label><div><input type="number" id="gridDepth" value="35" min="1"><span class="unit">cm</span></div></div>
+        <button class="reset-btn" id="removeLastRowBtn" style="margin-top:6px;">마지막 행 삭제</button>
+
+        <div class="field-row" style="margin-top:10px;"><label>깊이</label><div><input type="number" id="gridDepth" value="35" min="1"><span class="unit">cm</span></div></div>
         <button class="apply-btn" id="applyGridBtn" style="width:100%; margin-top:10px;">그리드 재생성</button>
       </div>
 
       <div class="card">
-        <h2>단가 설정</h2>
-        <p class="sub">원자재 배합비·kg당 단가. 기본값은 자재 계산기와 동일합니다.</p>
+        <h2>프레임(ㄷ찬넬) 단가</h2>
+        <p class="sub">기둥·가로대·깊이연결대는 사입 자재(ㄷ찬넬)로 만들 예정이라, 배합비 계산 없이 m당 가격을 직접 곱해서 계산합니다. 아직 확정 견적 전이라 예시값입니다.</p>
+        <div class="field-row"><label>ㄷ찬넬 1m당 가격</label><div><input type="number" id="channelPricePerM" value="13500" step="100"><span class="unit">원/m</span></div></div>
+      </div>
+
+      <div class="card">
+        <h2>판넬(멸균팩 합판) 단가 설정</h2>
+        <p class="sub">판넬은 자사 제조 원자재 배합비·kg당 단가로 계산합니다. 기본값은 자재 계산기와 동일합니다.</p>
         <div class="field-row"><label>목분 배합비</label><div><input type="number" id="r_wood" value="50" step="0.1"><span class="unit">%</span></div></div>
         <div class="field-row"><label>멸균팩 배합비</label><div><input type="number" id="r_mel" value="20" step="0.1"><span class="unit">%</span></div></div>
         <div class="field-row"><label>폐플라스틱 배합비</label><div><input type="number" id="r_plastic" value="28" step="0.1"><span class="unit">%</span></div></div>
@@ -250,7 +278,8 @@
         <div class="field-row"><label>첨가제</label><div><input type="number" id="p_add" value="3400"><span class="unit">원/kg</span></div></div>
         <div class="field-row"><label>콤파운드 가공비</label><div><input type="number" id="p_compound" value="450"><span class="unit">원/kg</span></div></div>
         <div class="field-row"><label>제품 생산비</label><div><input type="number" id="p_prod" value="400"><span class="unit">원/kg</span></div></div>
-        <div class="field-row"><label>1m 기준 중량</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+        <div class="field-row"><label>1m 기준 중량(판넬)</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+        <p class="sub" style="margin:8px 0 0;">두께 20mm × 폭 100mm(고정) 기준. 판넬을 표준 길이로 잘라 쓸 때의 중량 계산에 쓰입니다.</p>
       </div>
 
       <div class="card">
@@ -315,6 +344,49 @@
       </div>
 
       <div class="card">
+        <h2>중간 가로대(행 경계) 옵션</h2>
+        <p class="sub">
+          체크된 경계에는 기본대로 가로대(상판)가 들어가서, 그 위아래 판넬이 거기서 끊깁니다.
+          체크를 해제하면 그 가로대를 프레임에서 빼고, 위아래 판넬이 끊기지 않고 이어져서 더 긴 표준 판넬(50·100cm)을 한 번에 쓸 수 있습니다.
+        </p>
+        <div class="panel-row-select" id="railOptions"></div>
+      </div>
+
+      <div class="card">
+        <h2>중간 기둥(열 경계) 옵션</h2>
+        <p class="sub">
+          체크된 경계에는 기본대로 세로 기둥이 들어가서, 그 좌우 판넬이 거기서 끊깁니다.
+          체크를 해제하면 그 기둥을 프레임에서 빼고, 좌우 판넬(앞·뒤·상판·하판)이 끊기지 않고 이어져서 더 넓은 판넬을 한 번에 쓸 수 있습니다.
+        </p>
+        <div class="panel-row-select" id="railColOptions"></div>
+      </div>
+
+      <div class="card">
+        <h2>판넬 설정</h2>
+        <p class="sub">
+          행·열·면을 선택하고 "붙이기"/"떼기"를 눌러 적용하세요(행×열 교집합 칸에 적용). 여러 번 눌러서 조합할 수 있습니다.<br>
+          예) 모든 면 → 전체 행 + 전체 열 + 모든 면 체크 후 붙이기 · 옆면만 → 전체 행 + 전체 열 + 좌·우 체크 후 붙이기 ·
+          첫 번째 줄만 → 1행 + 전체 열 + 원하는 면 체크 후 붙이기 · 첫 번째 칸만 → 1행 + 1열 + 원하는 면 체크 후 붙이기 ·
+          첫 줄 앞면만 빼기 → (모든 면을 붙인 뒤) 1행 + 전체 열 + 전면 체크 후 떼기.
+        </p>
+        <div class="panel-row-select" id="panelRowSelect"></div>
+        <div class="panel-row-select" id="panelColSelect" style="margin-top:6px;"></div>
+        <div class="panel-face-select" id="panelFaceSelect">
+          <label><input type="checkbox" value="front">전면(앞)</label>
+          <label><input type="checkbox" value="back">후면(뒤)</label>
+          <label><input type="checkbox" value="left">좌측면</label>
+          <label><input type="checkbox" value="right">우측면</label>
+          <label><input type="checkbox" value="top">상판</label>
+          <label><input type="checkbox" value="bottom">하판</label>
+        </div>
+        <div class="add-row">
+          <button class="add-btn" id="applyPanelBtn">선택한 칸에 판넬 붙이기</button>
+          <button class="apply-btn" id="removePanelBtn">선택한 칸에서 판넬 떼기</button>
+        </div>
+        <div class="grid-hint" id="panelSummary"></div>
+      </div>
+
+      <div class="card">
         <h2>3D 미리보기</h2>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="canvas-hint">드래그: 회전 · 휠: 확대/축소</div>
@@ -330,18 +402,31 @@
           <div><div class="label">세트당 원가</div><div class="val" id="perSetCost">–</div></div>
           <div><div class="label">세트당 마진</div><div class="val" id="perSetMargin">–</div></div>
           <div><div class="label">결합부(조인트) 개수</div><div class="val" id="jointCount">–</div></div>
-          <div><div class="label">총 투입 원료</div><div class="val" id="totalWeight">–</div></div>
+          <div><div class="label">총 투입 원료(판넬)</div><div class="val" id="totalWeight">–</div></div>
           <div><div class="label">배분된 설비임률</div><div class="val" id="allocImryul">–</div></div>
         </div>
       </div>
       <div class="breakdown" id="costBreakdown" style="margin: 10px 2px 0;"></div>
 
       <div class="card" style="margin-top:16px;">
-        <h2>자동 산출 자재 명세(BOM)</h2>
-        <p class="sub">그리드에서 자동으로 뽑아낸 프로파일 부재입니다. 직접 편집이 필요하면 "자재 직접입력 원가 계산기"를 이용하세요.</p>
+        <h2>프레임 명세 (ㄷ찬넬)</h2>
+        <p class="sub">그리드에서 자동으로 뽑아낸 기둥·가로대·깊이연결대입니다. ㄷ찬넬 1m당 가격으로 계산합니다.</p>
         <table class="items">
-          <thead><tr><th>길이(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">중량(kg)</th><th style="text-align:right;">재료+가공비</th></tr></thead>
+          <thead><tr><th>길이(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">가격</th></tr></thead>
           <tbody id="bomBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2>판넬 명세 (자재값)</h2>
+        <p class="sub">
+          판넬은 폭 10cm 고정 자재를 표준 길이(25·50·100cm)로만 씁니다. "판넬 설정"에서 붙인 각 면을,
+          폭 10cm 판넬을 옆으로 나열해 채우고(필요 장수 = 면 너비 ÷ 10cm 올림), 그 한 장 한 장의 길이는
+          25/50/100cm를 조합해 채운 개수로 자동 환산한 표입니다. 프레임과 같은 단면 자재라 같은 kg/m 기준으로 계산합니다.
+        </p>
+        <table class="items">
+          <thead><tr><th>표준 길이(cm)</th><th style="text-align:right;">개수</th><th style="text-align:right;">중량(kg)</th><th style="text-align:right;">재료+가공비</th></tr></thead>
+          <tbody id="panelBomBody"></tbody>
         </table>
       </div>
 
@@ -373,6 +458,7 @@
     p_wood: 300, p_mel: 150, p_plastic: 700, p_add: 3400,
     p_compound: 450, p_prod: 400,
     wPerM: 2.72,
+    channelPricePerM: 13500,
     imryul: 2000000,
     setCount: 1,
     batchTotal: 1000,
@@ -385,23 +471,30 @@
     { id: 1, name: 'ㄷ찬넬(연결 브라켓)', price: 800, qty: 1 },
     { id: 2, name: '피스(나사)', price: 80, qty: 4 },
   ];
+  const FACE_LABELS = { front: '전면', back: '후면', left: '좌측면', right: '우측면', top: '상판', bottom: '하판' };
 
-  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
+  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM','channelPricePerM'];
 
   let cols = [60, 60, 60];   // widths, cm, left->right
   let rows = [35, 35, 35];   // heights, cm, bottom->top
   let activeCells = new Set(); // "r,c"
+  let panelFaces = new Map(); // "r,c" -> Set of face codes: front/back/left/right/top/bottom
+  let omittedRowRails = new Set(); // row-boundary indices (1..rows.length-1) whose middle rail is left out
+  let omittedColRails = new Set(); // column-boundary indices (1..cols.length-1) whose middle post is left out
   let hardwareItems = DEFAULT_HARDWARE.map(h => ({ ...h }));
   let nextHwId = 3;
   let batchMode = 'own';
   let markupMode = 'markup';
-  let lastCalc = { setCount: 1, perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, items: [], hardwareSummary: [] };
+  let lastCalc = { setCount: 1, perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, items: [], hardwareSummary: [], panels: [] };
 
   function fillAllCells() {
     activeCells = new Set();
     for (let r = 0; r < rows.length; r++) {
       for (let c = 0; c < cols.length; c++) activeCells.add(r + ',' + c);
     }
+    panelFaces = new Map();
+    omittedRowRails = new Set();
+    omittedColRails = new Set();
   }
   fillAllCells();
 
@@ -420,6 +513,9 @@
       state.rowsInput = $('rowsInput').value;
       state.gridDepth = $('gridDepth').value;
       state.activeCells = [...activeCells];
+      state.panelFaces = [...panelFaces.entries()].map(([k, faces]) => [k, [...faces]]);
+      state.omittedRowRails = [...omittedRowRails];
+      state.omittedColRails = [...omittedColRails];
       state.hardwareItems = hardwareItems;
       state.batchMode = batchMode;
       state.markupMode = markupMode;
@@ -446,6 +542,9 @@
       if (!rows.length) rows = [35, 35, 35];
       if (state.activeCells && state.activeCells.length) {
         activeCells = new Set(state.activeCells);
+        panelFaces = new Map((state.panelFaces || []).map(([k, faces]) => [k, new Set(faces)]));
+        omittedRowRails = new Set(state.omittedRowRails || []);
+        omittedColRails = new Set(state.omittedColRails || []);
       } else {
         fillAllCells();
       }
@@ -491,6 +590,10 @@
     $('setCount').value = 1;
     $('batchTotal').value = 1000;
     renderGridEditor();
+    renderPanelRowSelect();
+    renderPanelColSelect();
+    renderRailOptions();
+    renderColRailOptions();
     renderHardware();
     rebuildScene();
     calc();
@@ -543,7 +646,12 @@
         cell.dataset.key = key;
         cell.title = `${c + 1}열 × ${rVis + 1}행`;
         cell.addEventListener('click', () => {
-          if (activeCells.has(key)) activeCells.delete(key); else activeCells.add(key);
+          if (activeCells.has(key)) {
+            activeCells.delete(key);
+            panelFaces.delete(key);
+          } else {
+            activeCells.add(key);
+          }
           cell.classList.toggle('off');
           rebuildScene(); calc(); saveState();
         });
@@ -551,6 +659,84 @@
       }
     }
     $('gridHint').textContent = `${cols.length}열 × ${rows.length}행 · 활성 모듈 ${activeCells.size}개`;
+  }
+
+  // ---------- panel row selector ----------
+  function renderPanelRowSelect() {
+    const wrap = $('panelRowSelect');
+    wrap.innerHTML = '';
+    const allLabel = document.createElement('label');
+    allLabel.innerHTML = `<input type="checkbox" id="panelRowAll">전체 행`;
+    wrap.appendChild(allLabel);
+    for (let r = 0; r < rows.length; r++) {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" class="panel-row-cb" value="${r}">${r + 1}행`;
+      wrap.appendChild(label);
+    }
+    $('panelRowAll').addEventListener('change', (e) => {
+      wrap.querySelectorAll('.panel-row-cb').forEach(cb => { cb.checked = e.target.checked; });
+    });
+  }
+
+  function renderPanelColSelect() {
+    const wrap = $('panelColSelect');
+    wrap.innerHTML = '';
+    const allLabel = document.createElement('label');
+    allLabel.innerHTML = `<input type="checkbox" id="panelColAll">전체 열`;
+    wrap.appendChild(allLabel);
+    for (let c = 0; c < cols.length; c++) {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" class="panel-col-cb" value="${c}">${c + 1}열`;
+      wrap.appendChild(label);
+    }
+    $('panelColAll').addEventListener('change', (e) => {
+      wrap.querySelectorAll('.panel-col-cb').forEach(cb => { cb.checked = e.target.checked; });
+    });
+  }
+
+  // ---------- internal row-rail options ----------
+  function renderRailOptions() {
+    const wrap = $('railOptions');
+    wrap.innerHTML = '';
+    if (rows.length < 2) {
+      wrap.innerHTML = '<span style="font-size:12.5px; color:var(--ink-soft);">행이 2개 이상이어야 중간 가로대가 생깁니다.</span>';
+      return;
+    }
+    for (let rb = 1; rb < rows.length; rb++) {
+      const label = document.createElement('label');
+      const checked = !omittedRowRails.has(rb);
+      label.innerHTML = `<input type="checkbox" class="rail-cb" value="${rb}" ${checked ? 'checked' : ''}>${rb}행-${rb + 1}행 사이`;
+      wrap.appendChild(label);
+    }
+    wrap.querySelectorAll('.rail-cb').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const rb = parseInt(e.target.value, 10);
+        if (e.target.checked) omittedRowRails.delete(rb); else omittedRowRails.add(rb);
+        rebuildScene(); calc(); saveState();
+      });
+    });
+  }
+
+  function renderColRailOptions() {
+    const wrap = $('railColOptions');
+    wrap.innerHTML = '';
+    if (cols.length < 2) {
+      wrap.innerHTML = '<span style="font-size:12.5px; color:var(--ink-soft);">열이 2개 이상이어야 중간 기둥이 생깁니다.</span>';
+      return;
+    }
+    for (let cb2 = 1; cb2 < cols.length; cb2++) {
+      const label = document.createElement('label');
+      const checked = !omittedColRails.has(cb2);
+      label.innerHTML = `<input type="checkbox" class="railcol-cb" value="${cb2}" ${checked ? 'checked' : ''}>${cb2}열-${cb2 + 1}열 사이`;
+      wrap.appendChild(label);
+    }
+    wrap.querySelectorAll('.railcol-cb').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const cb2 = parseInt(e.target.value, 10);
+        if (e.target.checked) omittedColRails.delete(cb2); else omittedColRails.add(cb2);
+        rebuildScene(); calc(); saveState();
+      });
+    });
   }
 
   // ---------- BOM generation from grid ----------
@@ -570,12 +756,14 @@
       const w = cols[c], h = rows[r];
 
       [r, r + 1].forEach(rowB => {
+        if (rowB > 0 && rowB < rows.length && omittedRowRails.has(rowB)) return; // 중간 가로대를 뺀 경계
         planes.forEach(pl => {
           const k = `h|${rowB}|${c}|${pl}`;
           if (!hBars.has(k)) hBars.set(k, { len: w, rowB, c, plane: pl });
         });
       });
       [c, c + 1].forEach(colB => {
+        if (colB > 0 && colB < cols.length && omittedColRails.has(colB)) return; // 중간 기둥을 뺀 경계
         planes.forEach(pl => {
           const k = `v|${colB}|${r}|${pl}`;
           if (!vBars.has(k)) vBars.set(k, { len: h, colB, r, plane: pl });
@@ -606,6 +794,112 @@
       lenCounts.set(len, (lenCounts.get(len) || 0) + 1);
     });
     return [...lenCounts.entries()].sort((a, b) => a[0] - b[0]).map(([len, qty], i) => ({ id: i + 1, len, qty }));
+  }
+
+  // ---------- panel geometry from grid + panelFaces ----------
+  function cellActive(r, c) { return activeCells.has(r + ',' + c); }
+  function cellHasFace(r, c, face) {
+    const set = panelFaces.get(r + ',' + c);
+    return !!set && set.has(face);
+  }
+
+  function computePanels(frame) {
+    const { colX, rowY, depth } = frame;
+    const panels = [];
+
+    // x-facing panels (left/right dividers) at column boundaries — 같은 열 경계에서 세로로 이어진 칸은 중간 가로대가 빠졌으면 병합
+    for (let cb = 0; cb <= cols.length; cb++) {
+      let r = 0;
+      while (r < rows.length) {
+        const wants = (rr) => (cellActive(rr, cb - 1) && cellHasFace(rr, cb - 1, 'right')) || (cellActive(rr, cb) && cellHasFace(rr, cb, 'left'));
+        if (!wants(r)) { r++; continue; }
+        let rEnd = r;
+        while (rEnd + 1 < rows.length && wants(rEnd + 1) && omittedRowRails.has(rEnd + 1)) rEnd++;
+        panels.push({ orient: 'x', pos: colX[cb], y0: rowY[r], y1: rowY[rEnd + 1], z0: 0, z1: depth, w: rowY[rEnd + 1] - rowY[r], h: depth });
+        r = rEnd + 1;
+      }
+    }
+    // y-facing panels (top/bottom) at row boundaries — 가로로 이어진 칸은 중간 기둥이 빠졌으면 병합
+    for (let rb = 0; rb <= rows.length; rb++) {
+      let c = 0;
+      while (c < cols.length) {
+        const wants = (cc) => (cellActive(rb - 1, cc) && cellHasFace(rb - 1, cc, 'top')) || (cellActive(rb, cc) && cellHasFace(rb, cc, 'bottom'));
+        if (!wants(c)) { c++; continue; }
+        let cEnd = c;
+        while (cEnd + 1 < cols.length && wants(cEnd + 1) && omittedColRails.has(cEnd + 1)) cEnd++;
+        panels.push({ orient: 'y', pos: rowY[rb], x0: colX[c], x1: colX[cEnd + 1], z0: 0, z1: depth, w: colX[cEnd + 1] - colX[c], h: depth });
+        c = cEnd + 1;
+      }
+    }
+    // z-facing panels (front/back) — 먼저 같은 열에서 세로(행) 병합, 그 다음 같은 구간을 가진 인접 열끼리 가로(열) 병합
+    ['front', 'back'].forEach(face => {
+      const colRuns = [];
+      for (let c = 0; c < cols.length; c++) {
+        const runs = [];
+        let r = 0;
+        while (r < rows.length) {
+          if (!cellActive(r, c) || !cellHasFace(r, c, face)) { r++; continue; }
+          let rEnd = r;
+          while (rEnd + 1 < rows.length && cellActive(rEnd + 1, c) && cellHasFace(rEnd + 1, c, face) && omittedRowRails.has(rEnd + 1)) rEnd++;
+          runs.push({ r, rEnd });
+          r = rEnd + 1;
+        }
+        colRuns.push(runs);
+      }
+      const consumed = colRuns.map(runs => runs.map(() => false));
+      for (let c = 0; c < cols.length; c++) {
+        colRuns[c].forEach((run, idx) => {
+          if (consumed[c][idx]) return;
+          let cEnd = c;
+          while (cEnd + 1 < cols.length && omittedColRails.has(cEnd + 1)) {
+            const nextRuns = colRuns[cEnd + 1];
+            const matchIdx = nextRuns.findIndex((rr, rri) => !consumed[cEnd + 1][rri] && rr.r === run.r && rr.rEnd === run.rEnd);
+            if (matchIdx === -1) break;
+            consumed[cEnd + 1][matchIdx] = true;
+            cEnd++;
+          }
+          panels.push({
+            orient: 'z', pos: face === 'front' ? 0 : depth,
+            x0: colX[c], x1: colX[cEnd + 1], y0: rowY[run.r], y1: rowY[run.rEnd + 1],
+            w: colX[cEnd + 1] - colX[c], h: rowY[run.rEnd + 1] - rowY[run.r],
+          });
+        });
+      }
+    });
+
+    return panels;
+  }
+
+  // 판넬 자재는 임의 크기로 재단하지 않고, 폭 10cm 고정 + 길이 25/50/100cm 표준 규격만 사용합니다.
+  // (프레임 프로파일과 같은 단면 자재를 눕혀 쓰는 것이므로 같은 kg/m 기준으로 계산합니다.)
+  const PANEL_WIDTH = 10; // cm, 고정
+  const PANEL_STD_LENGTHS = [100, 50, 25]; // cm, 큰 것부터
+
+  function coverWithStdLengths(need) {
+    // need(cm)를 표준 길이 조합으로 채우고 남는 부분을 반환 (그리디: 큰 길이부터 채우고, 자투리는 가장 작은 표준 길이 1개로 마무리)
+    let remaining = need;
+    const pieces = [];
+    PANEL_STD_LENGTHS.forEach(len => {
+      while (remaining > 1e-6 && len <= remaining + 1e-6) {
+        pieces.push(len);
+        remaining -= len;
+      }
+    });
+    if (remaining > 1e-6) pieces.push(PANEL_STD_LENGTHS[PANEL_STD_LENGTHS.length - 1]);
+    return pieces;
+  }
+
+  function panelBomFromPanels(panels) {
+    const lenCounts = new Map(); // 표준 길이(cm) -> 개수
+    panels.forEach(p => {
+      if (p.w <= 0 || p.h <= 0) return;
+      const strips = Math.ceil(p.w / PANEL_WIDTH); // 폭 10cm 판넬을 옆으로 몇 장 나열해야 하는지
+      const piecesPerStrip = coverWithStdLengths(p.h); // 스트립 1장의 길이를 표준 규격 조합으로
+      piecesPerStrip.forEach(len => {
+        lenCounts.set(len, (lenCounts.get(len) || 0) + strips);
+      });
+    });
+    return [...lenCounts.entries()].sort((a, b) => b[0] - a[0]).map(([len, qty]) => ({ len, qty }));
   }
 
   // ---------- pricing (shared math with the material calculator) ----------
@@ -641,44 +935,69 @@
   function calc() {
     const frame = computeFrame();
     const bom = bomFromFrame(frame);
+    const panels = computePanels(frame);
+    const panelBom = panelBomFromPanels(panels);
     const kgRate = getKgRate();
     const wPerCm = parseFloat($('wPerM').value || 0) / 100;
+    const channelPricePerCm = (parseFloat($('channelPricePerM').value) || 0) / 100;
     const setCount = Math.max(1, parseInt($('setCount').value) || 1);
 
     const bomBody = $('bomBody');
     bomBody.innerHTML = '';
-    let setWeight = 0;
+    let frameCostPerSet = 0;
     bom.forEach(item => {
-      const w = item.len * wPerCm * item.qty;
-      setWeight += w;
+      const cost = item.len * channelPricePerCm * item.qty;
+      frameCostPerSet += cost;
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${fmt2(item.len)}</td><td class="num">${item.qty}</td><td class="num">${fmt2(w)}</td><td class="num">${fmt(w * kgRate)}원</td>`;
+      tr.innerHTML = `<td>${fmt2(item.len)}</td><td class="num">${item.qty}</td><td class="num">${fmt(cost)}원</td>`;
       bomBody.appendChild(tr);
     });
     if (!bom.length) {
-      bomBody.innerHTML = '<tr><td colspan="4" style="color:var(--ink-soft);">활성화된 모듈이 없습니다. 그리드에서 칸을 클릭해 모듈을 배치하세요.</td></tr>';
+      bomBody.innerHTML = '<tr><td colspan="3" style="color:var(--ink-soft);">활성화된 모듈이 없습니다. 그리드에서 칸을 클릭해 모듈을 배치하세요.</td></tr>';
     }
 
-    const totalWeight = setWeight * setCount;
-    const totalMaterialCost = totalWeight * kgRate;
+    const panelBomBody = $('panelBomBody');
+    panelBomBody.innerHTML = '';
+    let panelWeight = 0;
+    let panelPieceCount = 0;
+    panelBom.forEach(p => {
+      const w = p.len * wPerCm * p.qty;
+      panelWeight += w;
+      panelPieceCount += p.qty;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.len}</td><td class="num">${p.qty}</td><td class="num">${fmt2(w)}</td><td class="num">${fmt(w * kgRate)}원</td>`;
+      panelBomBody.appendChild(tr);
+    });
+    panelBomBody.innerHTML = panelBom.length ? panelBomBody.innerHTML :
+      '<tr><td colspan="4" style="color:var(--ink-soft);">붙은 판넬이 없습니다. 위 "판넬 설정"에서 행·열·면을 골라 붙이세요.</td></tr>';
+    $('panelSummary').textContent = panelBom.length
+      ? `판넬면 ${panels.length}개 → 표준 판넬(폭10cm) ${panelPieceCount}장 · ` + panelBom.map(p => `${p.len}cm×${p.qty}`).join(', ')
+      : '아직 붙은 판넬이 없습니다.';
+
+    // ㄷ찬넬은 사입 자재라 설비임률(압출·컴파운딩 가동비) 배분 대상이 아님 — 판넬(자사 제조 자재) 중량만 배분 기준으로 씀
+    const panelCostPerSet = panelWeight * kgRate;
+    const totalFrameCost = frameCostPerSet * setCount;
+    const totalPanelCost = panelCostPerSet * setCount;
+    const totalMaterialCost = totalFrameCost + totalPanelCost;
+    const totalPanelWeight = panelWeight * setCount;
 
     const hardwareCostPerSet = hardwareItems.reduce((sum, hw) => sum + (parseFloat(hw.price) || 0) * (parseFloat(hw.qty) || 0), 0) * frame.jointCount;
     const totalHardwareCost = hardwareCostPerSet * setCount;
 
     const imryul = parseFloat($('imryulCustom').value) || 0;
-    let batchWeight = totalWeight;
+    let batchWeight = totalPanelWeight;
     const warnEl = $('batchWarn');
     warnEl.style.display = 'none';
     if (batchMode === 'shared') {
       const bt = parseFloat($('batchTotal').value) || 0;
       batchWeight = bt;
-      if (bt < totalWeight) {
+      if (bt < totalPanelWeight) {
         warnEl.style.display = 'block';
-        warnEl.textContent = `입력하신 배치 총량(${fmt2(bt)}kg)이 이 주문의 총 소요량(${fmt2(totalWeight)}kg)보다 적습니다. 배치 총량을 늘려주세요.`;
-        batchWeight = totalWeight;
+        warnEl.textContent = `입력하신 배치 총량(${fmt2(bt)}kg)이 이 주문의 총 판넬 소요량(${fmt2(totalPanelWeight)}kg)보다 적습니다. 배치 총량을 늘려주세요.`;
+        batchWeight = totalPanelWeight;
       }
     }
-    const allocatedImryul = batchWeight > 0 ? imryul * (totalWeight / batchWeight) : 0;
+    const allocatedImryul = batchWeight > 0 ? imryul * (totalPanelWeight / batchWeight) : 0;
     const totalCost = totalMaterialCost + totalHardwareCost + allocatedImryul;
     const perSet = totalCost / setCount;
 
@@ -699,16 +1018,19 @@
     $('perSetPrice').textContent = fmt(perSetPrice) + '원';
     $('perSetMargin').textContent = fmt(perSetMargin) + '원';
     $('jointCount').textContent = frame.jointCount + '개';
-    $('totalWeight').textContent = fmt2(totalWeight) + 'kg';
+    $('totalWeight').textContent = fmt2(totalPanelWeight) + 'kg';
     $('allocImryul').textContent = fmt(allocatedImryul) + '원';
 
     $('costBreakdown').innerHTML =
-      `원가 구성(세트 1건) — 재료비 <b>${fmt(totalMaterialCost / setCount)}원</b> · 결합부속품 <b>${fmt(totalHardwareCost / setCount)}원</b>(조인트 ${frame.jointCount}개) · 설비임률배분 <b>${fmt(allocatedImryul / setCount)}원</b> ` +
-      `= 원가 <b>${fmt(perSet)}원</b> · 마진 <b>${fmt(perSetMargin)}원</b>(판매가 대비 <b>${effMarginPct.toFixed(1)}%</b>) → 판매가 <b>${fmt(perSetPrice)}원</b>`;
+      `<b style="font-size:14px;">프레임값 ${fmt(frameCostPerSet)}원 + 판넬(자재)값 ${fmt(panelCostPerSet)}원 = ${fmt(frameCostPerSet + panelCostPerSet)}원</b><br>` +
+      `여기에 결합부속품 <b>${fmt(totalHardwareCost / setCount)}원</b>(조인트 ${frame.jointCount}개) · 설비임률배분 <b>${fmt(allocatedImryul / setCount)}원</b>을 더해 ` +
+      `원가 <b>${fmt(perSet)}원</b> · 마진 <b>${fmt(perSetMargin)}원</b>(판매가 대비 <b>${effMarginPct.toFixed(1)}%</b>) → 판매가 <b>${fmt(perSetPrice)}원</b>`;
 
     lastCalc = {
       setCount, perSetCost: perSet, perSetPrice, totalCost, totalPrice,
+      frameCost: frameCostPerSet, panelCost: panelCostPerSet,
       items: bom.map(i => ({ len: i.len, qty: i.qty })),
+      panels: panelBom.map(p => ({ len: p.len, qty: p.qty })),
       hardwareSummary: hardwareItems.map(h => ({ name: h.name, qty: h.qty * frame.jointCount })),
     };
   }
@@ -718,8 +1040,9 @@
   let renderer, scene, camera, canvasWrap, barGroup;
   let cam = { theta: Math.PI / 4, phi: Math.PI / 3, radius: 260, target: { x: 0, y: 0, z: 0 } };
   let dragging = false, lastX = 0, lastY = 0;
-  let matPost, matRail, matDepth;
+  let matPost, matRail, matDepth, matPanel;
   const BAR_THICK = 3; // cm, visualization-only cross-section
+  const PANEL_THICK = 1.5; // cm, visualization-only panel thickness
 
   function initScene() {
     canvasWrap = $('canvasWrap');
@@ -731,6 +1054,7 @@
     matPost = new THREE.MeshStandardMaterial({ color: 0xA9713F, roughness: 0.75 });
     matRail = new THREE.MeshStandardMaterial({ color: 0x8A6A4A, roughness: 0.75 });
     matDepth = new THREE.MeshStandardMaterial({ color: 0x6F5636, roughness: 0.8 });
+    matPanel = new THREE.MeshStandardMaterial({ color: 0xD9C7A3, roughness: 0.85, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xE7DFCC);
 
@@ -841,22 +1165,136 @@
       addBox(BAR_THICK, BAR_THICK, b.len, x, y, z, matDepth);
     });
 
+    computePanels(frame).forEach(p => {
+      if (p.orient === 'x') {
+        addBox(PANEL_THICK, p.y1 - p.y0, p.z1 - p.z0, p.pos + ox, (p.y0 + p.y1) / 2 + oy, (p.z0 + p.z1) / 2 + oz, matPanel);
+      } else if (p.orient === 'y') {
+        addBox(p.x1 - p.x0, PANEL_THICK, p.z1 - p.z0, (p.x0 + p.x1) / 2 + ox, p.pos + oy, (p.z0 + p.z1) / 2 + oz, matPanel);
+      } else {
+        addBox(p.x1 - p.x0, p.y1 - p.y0, PANEL_THICK, (p.x0 + p.x1) / 2 + ox, (p.y0 + p.y1) / 2 + oy, p.pos + oz, matPanel);
+      }
+    });
+
     cam.target.set(0, 0, 0);
     cam.radius = Math.max(120, Math.sqrt(totalW * totalW + totalH * totalH + totalD * totalD) * 1.15);
     updateCamera();
   }
 
   // ---------- wiring ----------
-  $('applyGridBtn').addEventListener('click', () => {
+  function applyGrid() {
     const newCols = parseCsvNums($('colsInput').value);
     const newRows = parseCsvNums($('rowsInput').value);
     if (!newCols.length || !newRows.length) return;
     cols = newCols; rows = newRows;
     fillAllCells();
     renderGridEditor();
+    renderPanelRowSelect();
+    renderPanelColSelect();
+    renderRailOptions();
+    renderColRailOptions();
     rebuildScene();
     calc();
     saveState();
+  }
+  $('applyGridBtn').addEventListener('click', applyGrid);
+
+  // ---------- 25cm 단위 표준 규격으로 열/행 추가 ----------
+  const GRID_UNIT_PRESETS = [
+    { len: 25, label: '+25cm' },
+    { len: 50, label: '+50cm' },
+    { len: 100, label: '+1m' },
+    { len: 125, label: '+1m25cm' },
+    { len: 150, label: '+1m50cm' },
+    { len: 200, label: '+2m' },
+  ];
+
+  function renderGridUnitPresets() {
+    const colWrap = $('colPresetRow');
+    const rowWrap = $('rowPresetRow');
+    colWrap.innerHTML = '';
+    rowWrap.innerHTML = '';
+    GRID_UNIT_PRESETS.forEach(p => {
+      const colBtn = document.createElement('button');
+      colBtn.className = 'preset-btn';
+      colBtn.textContent = p.label;
+      colBtn.addEventListener('click', () => {
+        const list = parseCsvNums($('colsInput').value);
+        list.push(p.len);
+        $('colsInput').value = list.join(',');
+        applyGrid();
+      });
+      colWrap.appendChild(colBtn);
+
+      const rowBtn = document.createElement('button');
+      rowBtn.className = 'preset-btn';
+      rowBtn.textContent = p.label;
+      rowBtn.addEventListener('click', () => {
+        const list = parseCsvNums($('rowsInput').value);
+        list.push(p.len);
+        $('rowsInput').value = list.join(',');
+        applyGrid();
+      });
+      rowWrap.appendChild(rowBtn);
+    });
+  }
+  renderGridUnitPresets();
+
+  $('removeLastColBtn').addEventListener('click', () => {
+    const list = parseCsvNums($('colsInput').value);
+    if (list.length <= 1) return;
+    list.pop();
+    $('colsInput').value = list.join(',');
+    applyGrid();
+  });
+  $('removeLastRowBtn').addEventListener('click', () => {
+    const list = parseCsvNums($('rowsInput').value);
+    if (list.length <= 1) return;
+    list.pop();
+    $('rowsInput').value = list.join(',');
+    applyGrid();
+  });
+
+  // ---------- panel apply/remove ----------
+  function getSelectedPanelRows() {
+    return [...document.querySelectorAll('.panel-row-cb:checked')].map(cb => parseInt(cb.value, 10));
+  }
+  function getSelectedPanelCols() {
+    return [...document.querySelectorAll('.panel-col-cb:checked')].map(cb => parseInt(cb.value, 10));
+  }
+  function getSelectedPanelFaces() {
+    return [...document.querySelectorAll('#panelFaceSelect input:checked')].map(cb => cb.value);
+  }
+
+  $('applyPanelBtn').addEventListener('click', () => {
+    const rowsSel = getSelectedPanelRows();
+    const colsSel = getSelectedPanelCols();
+    const faces = getSelectedPanelFaces();
+    if (!rowsSel.length || !colsSel.length || !faces.length) return;
+    rowsSel.forEach(r => {
+      colsSel.forEach(c => {
+        if (!cellActive(r, c)) return;
+        const key = r + ',' + c;
+        if (!panelFaces.has(key)) panelFaces.set(key, new Set());
+        faces.forEach(f => panelFaces.get(key).add(f));
+      });
+    });
+    rebuildScene(); calc(); saveState();
+  });
+
+  $('removePanelBtn').addEventListener('click', () => {
+    const rowsSel = getSelectedPanelRows();
+    const colsSel = getSelectedPanelCols();
+    const faces = getSelectedPanelFaces();
+    if (!rowsSel.length || !colsSel.length || !faces.length) return;
+    rowsSel.forEach(r => {
+      colsSel.forEach(c => {
+        const key = r + ',' + c;
+        const set = panelFaces.get(key);
+        if (!set) return;
+        faces.forEach(f => set.delete(f));
+      });
+    });
+    rebuildScene(); calc(); saveState();
   });
 
   $('addHwBtn').addEventListener('click', () => {
@@ -896,6 +1334,7 @@
       totalCost: lastCalc.totalCost,
       totalPrice: lastCalc.totalPrice,
       items: lastCalc.items,
+      panels: lastCalc.panels,
       hardwareSummary: lastCalc.hardwareSummary,
     });
     $('saveName').value = '';
@@ -949,6 +1388,10 @@
   // ---------- init ----------
   loadState();
   renderGridEditor();
+  renderPanelRowSelect();
+  renderPanelColSelect();
+  renderRailOptions();
+  renderColRailOptions();
   renderHardware();
   initScene();
   rebuildScene();
