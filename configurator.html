@@ -333,11 +333,13 @@
       <div class="card">
         <h2>판넬 설정</h2>
         <p class="sub">
-          행과 면을 선택하고 "붙이기"/"떼기"를 눌러 적용하세요. 여러 번 눌러서 조합할 수 있습니다.<br>
-          예) 모든 면 → 전체 행 + 모든 면 체크 후 붙이기 · 옆면만 → 전체 행 + 좌·우 체크 후 붙이기 ·
-          첫 번째 줄만 → 1행 + 원하는 면 체크 후 붙이기 · 첫 줄 앞면만 빼기 → (모든 면을 붙인 뒤) 1행 + 전면 체크 후 떼기.
+          행·열·면을 선택하고 "붙이기"/"떼기"를 눌러 적용하세요(행×열 교집합 칸에 적용). 여러 번 눌러서 조합할 수 있습니다.<br>
+          예) 모든 면 → 전체 행 + 전체 열 + 모든 면 체크 후 붙이기 · 옆면만 → 전체 행 + 전체 열 + 좌·우 체크 후 붙이기 ·
+          첫 번째 줄만 → 1행 + 전체 열 + 원하는 면 체크 후 붙이기 · 첫 번째 칸만 → 1행 + 1열 + 원하는 면 체크 후 붙이기 ·
+          첫 줄 앞면만 빼기 → (모든 면을 붙인 뒤) 1행 + 전체 열 + 전면 체크 후 떼기.
         </p>
         <div class="panel-row-select" id="panelRowSelect"></div>
+        <div class="panel-row-select" id="panelColSelect" style="margin-top:6px;"></div>
         <div class="panel-face-select" id="panelFaceSelect">
           <label><input type="checkbox" value="front">전면(앞)</label>
           <label><input type="checkbox" value="back">후면(뒤)</label>
@@ -546,6 +548,7 @@
     $('batchTotal').value = 1000;
     renderGridEditor();
     renderPanelRowSelect();
+    renderPanelColSelect();
     renderHardware();
     rebuildScene();
     calc();
@@ -627,6 +630,22 @@
     }
     $('panelRowAll').addEventListener('change', (e) => {
       wrap.querySelectorAll('.panel-row-cb').forEach(cb => { cb.checked = e.target.checked; });
+    });
+  }
+
+  function renderPanelColSelect() {
+    const wrap = $('panelColSelect');
+    wrap.innerHTML = '';
+    const allLabel = document.createElement('label');
+    allLabel.innerHTML = `<input type="checkbox" id="panelColAll">전체 열`;
+    wrap.appendChild(allLabel);
+    for (let c = 0; c < cols.length; c++) {
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" class="panel-col-cb" value="${c}">${c + 1}열`;
+      wrap.appendChild(label);
+    }
+    $('panelColAll').addEventListener('change', (e) => {
+      wrap.querySelectorAll('.panel-col-cb').forEach(cb => { cb.checked = e.target.checked; });
     });
   }
 
@@ -1025,6 +1044,7 @@
     fillAllCells();
     renderGridEditor();
     renderPanelRowSelect();
+    renderPanelColSelect();
     rebuildScene();
     calc();
     saveState();
@@ -1034,36 +1054,41 @@
   function getSelectedPanelRows() {
     return [...document.querySelectorAll('.panel-row-cb:checked')].map(cb => parseInt(cb.value, 10));
   }
+  function getSelectedPanelCols() {
+    return [...document.querySelectorAll('.panel-col-cb:checked')].map(cb => parseInt(cb.value, 10));
+  }
   function getSelectedPanelFaces() {
     return [...document.querySelectorAll('#panelFaceSelect input:checked')].map(cb => cb.value);
   }
 
   $('applyPanelBtn').addEventListener('click', () => {
     const rowsSel = getSelectedPanelRows();
+    const colsSel = getSelectedPanelCols();
     const faces = getSelectedPanelFaces();
-    if (!rowsSel.length || !faces.length) return;
+    if (!rowsSel.length || !colsSel.length || !faces.length) return;
     rowsSel.forEach(r => {
-      for (let c = 0; c < cols.length; c++) {
-        if (!cellActive(r, c)) continue;
+      colsSel.forEach(c => {
+        if (!cellActive(r, c)) return;
         const key = r + ',' + c;
         if (!panelFaces.has(key)) panelFaces.set(key, new Set());
         faces.forEach(f => panelFaces.get(key).add(f));
-      }
+      });
     });
     rebuildScene(); calc(); saveState();
   });
 
   $('removePanelBtn').addEventListener('click', () => {
     const rowsSel = getSelectedPanelRows();
+    const colsSel = getSelectedPanelCols();
     const faces = getSelectedPanelFaces();
-    if (!rowsSel.length || !faces.length) return;
+    if (!rowsSel.length || !colsSel.length || !faces.length) return;
     rowsSel.forEach(r => {
-      for (let c = 0; c < cols.length; c++) {
+      colsSel.forEach(c => {
         const key = r + ',' + c;
         const set = panelFaces.get(key);
-        if (!set) continue;
+        if (!set) return;
         faces.forEach(f => set.delete(f));
-      }
+      });
     });
     rebuildScene(); calc(); saveState();
   });
@@ -1160,6 +1185,7 @@
   loadState();
   renderGridEditor();
   renderPanelRowSelect();
+  renderPanelColSelect();
   renderHardware();
   initScene();
   rebuildScene();
