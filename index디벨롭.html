@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>멸균팩 합판 원가 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3EEE3;
+    --paper-dark: #E7DFCC;
+    --card: #FBF8F1;
+    --ink: #2B2620;
+    --ink-soft: #6E6455;
+    --moss: #3F5233;
+    --moss-soft: #E3E9D9;
+    --clay: #A9713F;
+    --line: #D8CEB8;
+    --error: #A6432E;
+    --error-soft: #F3E1DA;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper: #201D18;
+      --paper-dark: #29241D;
+      --card: #262119;
+      --ink: #ECE5D5;
+      --ink-soft: #AB9E87;
+      --moss: #8FB37A;
+      --moss-soft: #2E3A27;
+      --clay: #D6A26B;
+      --line: #423B2E;
+      --error: #E08268;
+      --error-soft: #3A251F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #201D18;
+    --paper-dark: #29241D;
+    --card: #262119;
+    --ink: #ECE5D5;
+    --ink-soft: #AB9E87;
+    --moss: #8FB37A;
+    --moss-soft: #2E3A27;
+    --clay: #D6A26B;
+    --line: #423B2E;
+    --error: #E08268;
+    --error-soft: #3A251F;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  header.top {
+    margin-bottom: 22px;
+  }
+  header.top .eyebrow {
+    font-size: 13px;
+    color: var(--moss);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  header.top h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700;
+    font-size: clamp(24px, 4vw, 32px);
+    margin: 4px 0 6px;
+    line-height: 1.25;
+  }
+  header.top p {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    margin: 0;
+    line-height: 1.6;
+    max-width: 62ch;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 18px 20px;
+  }
+  .card + .card { margin-top: 16px; }
+
+  .card h2 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+  .card .sub {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    line-height: 1.5;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-row label {
+    font-size: 13.5px;
+    color: var(--ink);
+    flex: 1;
+  }
+  .field-row .unit {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-left: 4px;
+  }
+  input[type="number"], input[type="text"] {
+    width: 92px;
+    background: var(--paper-dark);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13.5px;
+    color: var(--ink);
+    font-family: 'Noto Sans KR', sans-serif;
+    text-align: right;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, select:focus, button:focus-visible {
+    outline: 2px solid var(--moss);
+    outline-offset: 1px;
+  }
+
+  .ratio-sum {
+    margin-top: 8px;
+    font-size: 12.5px;
+    text-align: right;
+    color: var(--ink-soft);
+  }
+  .ratio-sum.bad { color: var(--error); font-weight: 700; }
+
+  .reset-btn {
+    margin-top: 14px;
+    width: 100%;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 12.5px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .reset-btn:hover { border-color: var(--clay); color: var(--clay); }
+
+  /* result banner */
+  .result-banner {
+    background: var(--moss);
+    color: var(--moss-soft);
+    border-radius: 10px;
+    padding: 22px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .result-banner .big {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .result-banner .big .label {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .result-banner .big .num {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700;
+    font-size: clamp(30px, 5vw, 42px);
+    line-height: 1.1;
+    color: #FBF8F1;
+  }
+  .result-banner .mini-stats {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .result-banner .mini-stats div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .result-banner .mini-stats .label { font-size: 11.5px; opacity: 0.8; }
+  .result-banner .mini-stats .val { font-size: 16px; font-weight: 700; color: #FBF8F1; }
+
+  /* items table */
+  table.items {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  table.items th {
+    text-align: left;
+    font-weight: 700;
+    color: var(--ink-soft);
+    font-size: 12px;
+    padding: 6px 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.items td {
+    padding: 6px 6px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.items input[type="number"] { width: 76px; }
+  table.items .del-btn {
+    background: none;
+    border: none;
+    color: var(--error);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px;
+  }
+  .preset-row {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0 10px;
+    flex-wrap: wrap;
+  }
+  .preset-btn {
+    background: var(--paper-dark);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .preset-btn:hover { border-color: var(--moss); color: var(--moss); }
+
+  .add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .add-row input { width: 100px; }
+  .add-btn {
+    background: var(--moss);
+    color: var(--moss-soft);
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .add-btn:hover { opacity: 0.9; }
+
+  /* batch mode */
+  .toggle-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .toggle-btn {
+    flex: 1;
+    background: var(--paper-dark);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    border-radius: 6px;
+    padding: 9px 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .toggle-btn.active {
+    background: var(--moss-soft);
+    border-color: var(--moss);
+    color: var(--moss);
+    font-weight: 700;
+  }
+
+  .imryul-presets { display: flex; gap: 8px; margin-bottom: 10px; }
+  .imryul-presets .preset-btn.active { background: var(--moss-soft); border-color: var(--moss); color: var(--moss); font-weight: 700; }
+
+  .warn {
+    background: var(--error-soft);
+    color: var(--error);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .breakdown {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .breakdown b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  footer.note {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">화수목 · 내부 산출 도구</div>
+    <h1>멸균팩 합판 원가 계산기</h1>
+    <p>필요한 길이별 자재 개수를 입력하면, 배합비·가공비·설비 임률까지 반영한 세트당 제조원가를 바로 계산합니다. 배송비·조립비·부속품비는 포함하지 않습니다.</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: settings -->
+    <div>
+      <div class="card">
+        <h2>단가 설정</h2>
+        <p class="sub">기본값은 지금까지 확인된 수치입니다. 새 견적을 받으면 여기서 바로 바꾸세요.</p>
+
+        <div class="field-row"><label>목분 배합비</label><div><input type="number" id="r_wood" value="50" step="0.1"><span class="unit">%</span></div></div>
+        <div class="field-row"><label>멸균팩 배합비</label><div><input type="number" id="r_mel" value="20" step="0.1"><span class="unit">%</span></div></div>
+        <div class="field-row"><label>폐플라스틱 배합비</label><div><input type="number" id="r_plastic" value="28" step="0.1"><span class="unit">%</span></div></div>
+        <div class="field-row"><label>첨가제 배합비</label><div><input type="number" id="r_add" value="2" step="0.1"><span class="unit">%</span></div></div>
+        <div class="ratio-sum" id="ratioSum">합계 100.0%</div>
+      </div>
+
+      <div class="card">
+        <p class="sub" style="margin-bottom:10px;">원자재 kg당 단가</p>
+        <div class="field-row"><label>목분</label><div><input type="number" id="p_wood" value="300"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>멸균팩</label><div><input type="number" id="p_mel" value="150"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>폐플라스틱</label><div><input type="number" id="p_plastic" value="700"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>첨가제</label><div><input type="number" id="p_add" value="3400"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>콤파운드 가공비</label><div><input type="number" id="p_compound" value="450"><span class="unit">원/kg</span></div></div>
+        <div class="field-row"><label>제품 생산비</label><div><input type="number" id="p_prod" value="400"><span class="unit">원/kg</span></div></div>
+      </div>
+
+      <div class="card">
+        <p class="sub" style="margin-bottom:10px;">단면 규격</p>
+        <div class="field-row"><label>1m 기준 중량</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
+        <p class="sub" style="margin:8px 0 0;">두께 20mm × 폭 100mm(고정) 기준. 단면이 바뀌면 이 값을 다시 넣으세요.</p>
+      </div>
+
+      <button class="reset-btn" id="resetBtn">기본값으로 초기화</button>
+    </div>
+
+    <!-- RIGHT: main -->
+    <div>
+
+      <div class="result-banner" id="resultBanner">
+        <div class="big">
+          <div class="label">세트 1건당 원가</div>
+          <div class="num" id="perSetCost">–</div>
+        </div>
+        <div class="mini-stats">
+          <div><div class="label">총 원가(전체 세트)</div><div class="val" id="totalCost">–</div></div>
+          <div><div class="label">총 투입 원료</div><div class="val" id="totalWeight">–</div></div>
+          <div><div class="label">배분된 설비임률</div><div class="val" id="allocImryul">–</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2>이 가구(세트) 1개에 필요한 자재</h2>
+        <p class="sub">길이와 개수를 입력하세요. 아래 버튼으로 자주 쓰는 길이를 빠르게 추가할 수 있습니다.</p>
+
+        <div class="preset-row">
+          <button class="preset-btn" data-len="10">+10cm</button>
+          <button class="preset-btn" data-len="25">+25cm</button>
+          <button class="preset-btn" data-len="50">+50cm</button>
+          <button class="preset-btn" data-len="100">+1m(100cm)</button>
+        </div>
+
+        <table class="items">
+          <thead>
+            <tr><th>길이(cm)</th><th>개수</th><th style="text-align:right;">중량(kg)</th><th style="text-align:right;">재료+가공비</th><th></th></tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+
+        <div class="add-row">
+          <input type="number" id="customLen" placeholder="길이(cm)" min="1">
+          <input type="number" id="customQty" placeholder="개수" min="1" value="1">
+          <button class="add-btn" id="addCustomBtn">자재 추가</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>배치(공장 가동) 조건</h2>
+        <p class="sub">이 가구 하나만 단독으로 배치를 도는지, 다른 물량과 합쳐 큰 배치로 돌리는지에 따라 임률 배분이 달라집니다.</p>
+
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="mode_own">이 세트 물량이<br>곧 배치 전체</button>
+          <button class="toggle-btn" id="mode_shared">더 큰 배치의<br>일부로 생산</button>
+        </div>
+
+        <div class="field-row" id="sharedBatchRow" style="display:none;">
+          <label>이번에 실제 투입할 배치 총량</label>
+          <div><input type="number" id="batchTotal" value="1000"><span class="unit">kg</span></div>
+        </div>
+
+        <div class="field-row">
+          <label>이 세트를 몇 건(개) 만들 것인지</label>
+          <div><input type="number" id="setCount" value="1" min="1"><span class="unit">세트</span></div>
+        </div>
+
+        <p class="sub" style="margin:14px 0 6px;">설비 임률</p>
+        <div class="imryul-presets">
+          <button class="preset-btn active" data-imryul="2000000">200만원</button>
+          <button class="preset-btn" data-imryul="2500000">250만원</button>
+        </div>
+        <div class="field-row">
+          <label>직접 입력</label>
+          <div><input type="number" id="imryulCustom" value="2000000"><span class="unit">원</span></div>
+        </div>
+
+        <div class="warn" id="batchWarn" style="display:none;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="note">
+    ※ 배송비·조립비·결합 부속품비는 포함되지 않습니다 · 설비 임률이 배치 규모와 무관한 고정비라는 전제는 동하 측에 재확인이 필요합니다 · 배합비·단가가 바뀌면 왼쪽 설정을 수정하세요. 이 페이지의 설정값은 이 브라우저에만 저장됩니다.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  const DEFAULTS = {
+    r_wood: 50, r_mel: 20, r_plastic: 28, r_add: 2,
+    p_wood: 300, p_mel: 150, p_plastic: 700, p_add: 3400,
+    p_compound: 450, p_prod: 400,
+    wPerM: 2.72,
+    imryul: 2000000,
+    setCount: 1,
+    batchTotal: 1000,
+  };
+
+  let items = [
+    { id: 1, len: 25, qty: 3 },
+    { id: 2, len: 50, qty: 2 },
+    { id: 3, len: 100, qty: 2 },
+  ];
+  let nextId = 4;
+  let batchMode = 'own'; // 'own' | 'shared'
+  let selectedImryulPreset = 2000000;
+
+  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
+
+  function fmt(n) {
+    return Math.round(n).toLocaleString('ko-KR');
+  }
+  function fmt2(n) {
+    return (Math.round(n * 100) / 100).toLocaleString('ko-KR');
+  }
+
+  function saveState() {
+    try {
+      const state = {};
+      settingIds.forEach(id => state[id] = $(id).value);
+      state.items = items;
+      state.batchMode = batchMode;
+      state.imryulCustom = $('imryulCustom').value;
+      state.setCount = $('setCount').value;
+      state.batchTotal = $('batchTotal').value;
+      window.localStorage.setItem('mgpk_calc_state_v2', JSON.stringify(state));
+    } catch (e) { /* storage unavailable, ignore */ }
+  }
+
+  function loadState() {
+    try {
+      const raw = window.localStorage.getItem('mgpk_calc_state_v2');
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      settingIds.forEach(id => { if (state[id] !== undefined) $(id).value = state[id]; });
+      if (state.items && state.items.length) { items = state.items; nextId = Math.max(...items.map(i=>i.id)) + 1; }
+      if (state.batchMode) batchMode = state.batchMode;
+      if (state.imryulCustom) $('imryulCustom').value = state.imryulCustom;
+      if (state.setCount) $('setCount').value = state.setCount;
+      if (state.batchTotal) $('batchTotal').value = state.batchTotal;
+    } catch (e) { /* ignore, start fresh */ }
+  }
+
+  function resetDefaults() {
+    Object.keys(DEFAULTS).forEach(k => {
+      if ($(k)) $(k).value = DEFAULTS[k];
+    });
+    items = [
+      { id: 1, len: 25, qty: 3 },
+      { id: 2, len: 50, qty: 2 },
+      { id: 3, len: 100, qty: 2 },
+    ];
+    nextId = 4;
+    batchMode = 'own';
+    $('mode_own').classList.add('active');
+    $('mode_shared').classList.remove('active');
+    $('sharedBatchRow').style.display = 'none';
+    $('imryulCustom').value = 2000000;
+    document.querySelectorAll('.imryul-presets .preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.imryul-presets .preset-btn[data-imryul="2000000"]').classList.add('active');
+    $('setCount').value = 1;
+    $('batchTotal').value = 1000;
+    renderItems();
+    calc();
+    saveState();
+  }
+
+  function renderItems() {
+    const body = $('itemsBody');
+    body.innerHTML = '';
+    const wPerCm = parseFloat($('wPerM').value || 0) / 100;
+    items.forEach(item => {
+      const tr = document.createElement('tr');
+      const weight = item.len * wPerCm * item.qty;
+      tr.innerHTML = `
+        <td><input type="number" min="1" value="${item.len}" data-field="len" data-id="${item.id}"></td>
+        <td><input type="number" min="1" value="${item.qty}" data-field="qty" data-id="${item.id}"></td>
+        <td class="num" data-weight="${item.id}">${fmt2(weight)}</td>
+        <td class="num" data-cost="${item.id}">–</td>
+        <td><button class="del-btn" data-del="${item.id}" aria-label="삭제">×</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const id = parseInt(e.target.dataset.id, 10);
+        const field = e.target.dataset.field;
+        const item = items.find(i => i.id === id);
+        if (item) item[field] = parseFloat(e.target.value) || 0;
+        calc();
+        saveState();
+      });
+    });
+    body.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.dataset.del, 10);
+        items = items.filter(i => i.id !== id);
+        renderItems();
+        calc();
+        saveState();
+      });
+    });
+  }
+
+  function getKgRate() {
+    const rw = parseFloat($('r_wood').value) || 0;
+    const rm = parseFloat($('r_mel').value) || 0;
+    const rp = parseFloat($('r_plastic').value) || 0;
+    const ra = parseFloat($('r_add').value) || 0;
+    const sum = rw + rm + rp + ra;
+
+    const pw = parseFloat($('p_wood').value) || 0;
+    const pm = parseFloat($('p_mel').value) || 0;
+    const pp = parseFloat($('p_plastic').value) || 0;
+    const pa = parseFloat($('p_add').value) || 0;
+    const compound = parseFloat($('p_compound').value) || 0;
+    const prod = parseFloat($('p_prod').value) || 0;
+
+    const ratioSumEl = $('ratioSum');
+    if (Math.abs(sum - 100) > 0.05) {
+      ratioSumEl.textContent = `합계 ${sum.toFixed(1)}% — 100%가 되도록 맞춰주세요`;
+      ratioSumEl.classList.add('bad');
+    } else {
+      ratioSumEl.textContent = `합계 ${sum.toFixed(1)}%`;
+      ratioSumEl.classList.remove('bad');
+    }
+
+    const materialPerKg = (rw*pw + rm*pm + rp*pp + ra*pa) / (sum || 100);
+    return materialPerKg + compound + prod;
+  }
+
+  function calc() {
+    const kgRate = getKgRate();
+    const wPerCm = parseFloat($('wPerM').value || 0) / 100;
+    const setCount = Math.max(1, parseInt($('setCount').value) || 1);
+
+    let setWeight = 0;
+    items.forEach(item => {
+      const w = item.len * wPerCm * item.qty;
+      setWeight += w;
+      const wEl = document.querySelector(`[data-weight="${item.id}"]`);
+      const cEl = document.querySelector(`[data-cost="${item.id}"]`);
+      if (wEl) wEl.textContent = fmt2(w);
+      if (cEl) cEl.textContent = fmt(w * kgRate) + '원';
+    });
+
+    const totalWeight = setWeight * setCount;
+    const totalMaterialCost = totalWeight * kgRate;
+
+    const imryul = parseFloat($('imryulCustom').value) || 0;
+
+    let batchWeight = totalWeight;
+    const warnEl = $('batchWarn');
+    warnEl.style.display = 'none';
+
+    if (batchMode === 'shared') {
+      const bt = parseFloat($('batchTotal').value) || 0;
+      batchWeight = bt;
+      if (bt < totalWeight) {
+        warnEl.style.display = 'block';
+        warnEl.textContent = `입력하신 배치 총량(${fmt2(bt)}kg)이 이 주문의 총 소요량(${fmt2(totalWeight)}kg)보다 적습니다. 배치 총량을 늘려주세요.`;
+        batchWeight = totalWeight;
+      }
+    }
+
+    const allocatedImryul = batchWeight > 0 ? imryul * (totalWeight / batchWeight) : 0;
+    const totalCost = totalMaterialCost + allocatedImryul;
+    const perSet = totalCost / setCount;
+
+    $('perSetCost').textContent = fmt(perSet) + '원';
+    $('totalCost').textContent = fmt(totalCost) + '원';
+    $('totalWeight').textContent = fmt2(totalWeight) + 'kg';
+    $('allocImryul').textContent = fmt(allocatedImryul) + '원';
+  }
+
+  // preset length buttons -> add item
+  document.querySelectorAll('.preset-row .preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const len = parseInt(btn.dataset.len, 10);
+      items.push({ id: nextId++, len, qty: 1 });
+      renderItems();
+      calc();
+      saveState();
+    });
+  });
+
+  $('addCustomBtn').addEventListener('click', () => {
+    const len = parseFloat($('customLen').value);
+    const qty = parseFloat($('customQty').value) || 1;
+    if (!len || len <= 0) return;
+    items.push({ id: nextId++, len, qty });
+    $('customLen').value = '';
+    $('customQty').value = 1;
+    renderItems();
+    calc();
+    saveState();
+  });
+
+  // imryul presets
+  document.querySelectorAll('.imryul-presets .preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.imryul-presets .preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $('imryulCustom').value = btn.dataset.imryul;
+      calc();
+      saveState();
+    });
+  });
+  $('imryulCustom').addEventListener('input', () => { calc(); saveState(); });
+
+  // batch mode toggle
+  $('mode_own').addEventListener('click', () => {
+    batchMode = 'own';
+    $('mode_own').classList.add('active');
+    $('mode_shared').classList.remove('active');
+    $('sharedBatchRow').style.display = 'none';
+    calc(); saveState();
+  });
+  $('mode_shared').addEventListener('click', () => {
+    batchMode = 'shared';
+    $('mode_shared').classList.add('active');
+    $('mode_own').classList.remove('active');
+    $('sharedBatchRow').style.display = 'flex';
+    calc(); saveState();
+  });
+
+  // settings inputs
+  settingIds.forEach(id => {
+    $(id).addEventListener('input', () => { renderItems(); calc(); saveState(); });
+  });
+  $('setCount').addEventListener('input', () => { calc(); saveState(); });
+  $('batchTotal').addEventListener('input', () => { calc(); saveState(); });
+
+  $('resetBtn').addEventListener('click', resetDefaults);
+
+  // init
+  loadState();
+  renderItems();
+  calc();
+})();
+</script>
+</body>
+</html>
