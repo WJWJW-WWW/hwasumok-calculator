@@ -413,7 +413,7 @@
 
         <div class="preset-row">
           <button class="preset-btn" data-len="10">+10cm</button>
-          <button class="preset-btn" data-len="30">+30cm</button>
+          <button class="preset-btn" data-len="25">+25cm</button>
           <button class="preset-btn" data-len="50">+50cm</button>
           <button class="preset-btn" data-len="100">+1m(100cm)</button>
         </div>
@@ -488,7 +488,7 @@
   };
 
   let items = [
-    { id: 1, len: 30, qty: 3 },
+    { id: 1, len: 25, qty: 3 },
     { id: 2, len: 50, qty: 2 },
     { id: 3, len: 100, qty: 2 },
   ];
@@ -514,13 +514,13 @@
       state.imryulCustom = $('imryulCustom').value;
       state.setCount = $('setCount').value;
       state.batchTotal = $('batchTotal').value;
-      window.localStorage.setItem('mgpk_calc_state_v1', JSON.stringify(state));
+      window.localStorage.setItem('mgpk_calc_state_v2', JSON.stringify(state));
     } catch (e) { /* storage unavailable, ignore */ }
   }
 
   function loadState() {
     try {
-      const raw = window.localStorage.getItem('mgpk_calc_state_v1');
+      const raw = window.localStorage.getItem('mgpk_calc_state_v2');
       if (!raw) return;
       const state = JSON.parse(raw);
       settingIds.forEach(id => { if (state[id] !== undefined) $(id).value = state[id]; });
@@ -537,7 +537,7 @@
       if ($(k)) $(k).value = DEFAULTS[k];
     });
     items = [
-      { id: 1, len: 30, qty: 3 },
+      { id: 1, len: 25, qty: 3 },
       { id: 2, len: 50, qty: 2 },
       { id: 3, len: 100, qty: 2 },
     ];
