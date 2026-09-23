@@ -386,8 +386,10 @@
 
       <div class="card">
         <p class="sub" style="margin-bottom:10px;">단면 규격</p>
+        <div class="field-row"><label>폭</label><div><input type="number" value="100" disabled style="opacity:0.6;"><span class="unit">mm(고정)</span></div></div>
+        <div class="field-row"><label>높이</label><div><input type="number" id="crossHeight" value="20" step="0.5"><span class="unit">mm</span></div></div>
         <div class="field-row"><label>1m 기준 중량</label><div><input type="number" id="wPerM" value="2.72" step="0.01"><span class="unit">kg/m</span></div></div>
-        <p class="sub" style="margin:8px 0 0;">두께 20mm × 폭 100mm(고정) 기준. 단면이 바뀌면 이 값을 다시 넣으세요.</p>
+        <p class="sub" style="margin:8px 0 0;">높이는 기본값(20mm)에서 조정 가능합니다. 높이를 바꾸면 위 kg/m 값도 실측치에 맞게 함께 수정하세요 (자동 계산되지 않습니다).</p>
       </div>
 
       <button class="reset-btn" id="resetBtn">기본값으로 초기화</button>
@@ -535,6 +537,7 @@
     p_wood: 300, p_mel: 150, p_plastic: 700, p_add: 3400,
     p_compound: 450, p_prod: 400,
     wPerM: 2.72,
+    crossHeight: 20,
     imryul: 2000000,
     setCount: 1,
     batchTotal: 1000,
@@ -562,7 +565,7 @@
   let nextSavedId = 1;
   let lastCalc = { perSetCost: 0, perSetPrice: 0, totalCost: 0, totalPrice: 0, setCount: 1 };
 
-  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM'];
+  const settingIds = ['r_wood','r_mel','r_plastic','r_add','p_wood','p_mel','p_plastic','p_add','p_compound','p_prod','wPerM','crossHeight'];
 
   function fmt(n) {
     return Math.round(n).toLocaleString('ko-KR');
